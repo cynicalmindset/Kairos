@@ -70,3 +70,22 @@ export async function login(email: string, password: string) {
 
   return data;
 }
+
+//ROOMS API CAL
+
+export async function createroom(name:string){
+  const response = await apiFetch("/api/rooms",{
+    method:"POST",
+    body:JSON.stringify({
+      name,
+    })
+  })
+
+  const data = await response.json() as any;
+
+  if(!response.ok){
+    throw new Error(data.message ?? "failed to create room");
+  }
+
+  return data;
+}

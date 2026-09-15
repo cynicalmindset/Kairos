@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  unlinkSync,
+} from "fs";
 import { homedir } from "os";
 import path from "path";
 
@@ -6,30 +12,25 @@ const KAIROS_DIR = path.join(homedir(), ".kairos");
 const AUTH_FILE = path.join(KAIROS_DIR, "auth.json");
 
 export function saveAuth(token: string) {
-    if (!existsSync(KAIROS_DIR)) {
-        mkdirSync(KAIROS_DIR, { recursive: true });
-    }
+  if (!existsSync(KAIROS_DIR)) {
+    mkdirSync(KAIROS_DIR, { recursive: true });
+  }
 
-    writeFileSync(
-        AUTH_FILE,
-        JSON.stringify({ token }, null, 2)
-    );
+  writeFileSync(AUTH_FILE, JSON.stringify({ token }, null, 2));
 }
 
 export function getSavedToken(): string | null {
-    if (!existsSync(AUTH_FILE)) {
-        return null;
-    }
+  if (!existsSync(AUTH_FILE)) {
+    return null;
+  }
 
-    const data = JSON.parse(
-        readFileSync(AUTH_FILE, "utf-8")
-    );
+  const data = JSON.parse(readFileSync(AUTH_FILE, "utf-8"));
 
-    return data.token ?? null;
+  return data.token ?? null;
 }
 
 export function clearAuth() {
-    if (existsSync(AUTH_FILE)) {
-        writeFileSync(AUTH_FILE, "");
-    }
-}   
+  if (existsSync(AUTH_FILE)) {
+    unlinkSync(AUTH_FILE);
+  }
+}
