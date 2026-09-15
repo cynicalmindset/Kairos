@@ -1,7 +1,9 @@
 import { Box, render, Text } from "ink";
 import { register, login } from "./api.ts";
 import TextInput from "ink-text-input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { clearAuth, getSavedToken } from "./auth.ts";
+import { settoken } from "./api.ts";
 
 type Mode = "chat" | "register" | "login";
 
@@ -17,11 +19,30 @@ function App() {
   const [email, setemail] = useState("");
   const [password, setpassword] = useState("");
   const [error, seterror] = useState("");
-  const [registerstep, setregisterstep] = useState<"name" | "email" | "password">("name");
+  const [registerstep, setregisterstep] = useState<
+    "name" | "email" | "password"
+  >("name");
   const [loginstep, setloginstep] = useState<"email" | "password">("email");
+
+  useEffect(() => {
+    const token = getSavedToken();
+
+    if (token) {
+      settoken(token);
+      setlogged(true);
+    }
+  }, []);
 
   const handlesubmit = () => {
     if (!message.trim()) return;
+    if (message.trim() === "/logout") {
+      clearAuth();
+      setlogged(false);
+      setmode("chat");
+      setmessage("");
+      setmessages([]);
+      return;
+    }
     if (message.trim() === "/register") {
       setmode("register");
       setmessage("");

@@ -1,3 +1,4 @@
+import { saveAuth } from "./auth.ts";
 const API = "http://localhost:3000";
 let authtoken : string | null = null;
 export function settoken(token:string){
@@ -42,6 +43,7 @@ export async function register(name:String,email:String,password:String){
   }
   if(data.token){
     settoken(data.token);
+    saveAuth(data.token);
   }
   return data;
 }
@@ -63,6 +65,7 @@ export async function login(email: string, password: string) {
 
   if (data.token) {
     settoken(data.token);
+    saveAuth(data.token);
   }
 
   return data;
