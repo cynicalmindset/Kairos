@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// BETTER AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id            String  @id @map("_id")
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  image         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  ownedRooms  Room[]
+  memberships RoomMember[]
+  messages    Message[]
+  files       File[]
+}
+
+model Session {
+  id        String   @id @map("_id")
+  expiresAt DateTime
+  token     String   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id String @id @map("_id")
+
+  accountId  String
+  providerId String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+
+  scope    String?
+  password String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id         String   @id @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+// ─────────────────────────────────────────────
+// KAIROS — ROOMS
+// ─────────────────────────────────────────────
+
+model Room {
+  id          String  @id @default(cuid()) @map("_id")
+  name        String
+  description String?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  members  RoomMember[]
+  messages Message[]
+  files    File[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoomMember {
+  id String @id @default(cuid()) @map("_id")
+
+  userId String
+  roomId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, roomId])
+}
+
+// ─────────────────────────────────────────────
+// KAIROS — MESSAGES
+// ─────────────────────────────────────────────
+
+model Message {
+  id      String @id @default(cuid()) @map("_id")
+  content String
+
+  userId String
+  roomId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// KAIROS — FILES
+// ─────────────────────────────────────────────
+
+model File {
+  id   String @id @default(cuid()) @map("_id")
+  name String
+  path String
+  size Int
+
+  userId String
+  roomId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}

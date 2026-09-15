@@ -1,0 +1,29 @@
+{
+  "name": "kairos",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "prisma": "6.19.0"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.0",
+    "bcrypt": "^6.0.0",
+    "better-auth": "^1.7.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ink": "^7.1.1",
+    "ink-text-input": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemon": "^3.1.14",
+    "react": "^19.3.0"
+  }
+}
