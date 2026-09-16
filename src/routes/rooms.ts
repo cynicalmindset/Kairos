@@ -48,6 +48,7 @@ router.post("/:roomId/join", async (req, res) => {
       userId: session.user.id,
       roomId,
     },
+    
   });
 
   return res.status(201).json({
@@ -133,7 +134,7 @@ router.get("/", async (req, res) => {
 //     })
 // })
 
-//create room
+//create ROOM
 router.post("/", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -157,6 +158,12 @@ router.post("/", async (req, res) => {
     data: {
       name: name.trim(),
       ownerId: session.user.id,
+
+      members: {
+        create: {
+          userId: session.user.id,
+        },
+      },
     },
   });
 

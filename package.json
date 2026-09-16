@@ -11,6 +11,9 @@
     "@types/react": "^19.3.0",
     "prisma": "6.19.0"
   },
+  "scripts": {
+    "dev": "nodemon --exec bun src/index.ts"
+  },
   "peerDependencies": {
     "typescript": "^7.0.2"
   },
