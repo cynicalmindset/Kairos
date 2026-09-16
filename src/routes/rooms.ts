@@ -173,4 +173,200 @@ router.post("/", async (req, res) => {
   });
 });
 
+
+router.delete("/:roomId/leave", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  if (!session?.user) {
+    return res.status(401).json({
+      error: "Not logged in",
+    });
+  }
+
+  const { roomId } = req.params;
+
+  const membership = await prisma.roomMember.findUnique({
+    where: {
+      userId_roomId: {
+        userId: session.user.id,
+        roomId,
+      },
+    },
+  });
+
+  if (!membership) {
+    return res.status(404).json({
+      error: "You are not a member of this room",
+    });
+  }
+
+  await prisma.roomMember.delete({
+    where: {
+      userId_roomId: {
+        userId: session.user.id,
+        roomId,
+      },
+    },
+  });
+
+  return res.json({
+    message: "Left room",
+  });
+});
+
+
+router.delete("/:roomId", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  if (!session?.user) {
+    return res.status(401).json({
+      error: "Not logged in",
+    });
+  }
+
+  const { roomId } = req.params;
+
+  const room = await prisma.room.findUnique({
+    where: {
+      id: roomId,
+    },
+  });
+
+  if (!room) {
+    return res.status(404).json({
+      error: "Room not found",
+    });
+  }
+
+  if (room.ownerId !== session.user.id) {
+    return res.status(403).json({
+      error: "Only the room owner can delete this room",
+    });
+  }
+
+  await prisma.room.delete({
+    where: {
+      id: roomId,
+    },
+  });
+
+  return res.json({
+    message: "Room deleted",
+  });
+});
+
+router.get("/:roomId/members", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  if (!session?.user) {
+    return res.status(401).json({
+      error: "Not logged in",
+    });
+  }
+
+  const { roomId } = req.params;
+
+  const membership = await prisma.roomMember.findUnique({
+    where: {
+      userId_roomId: {
+        userId: session.user.id,
+        roomId,
+      },
+    },
+  });
+
+  if (!membership) {
+    return res.status(403).json({
+      error: "You are not a member of this room",
+    });
+  }
+
+  const members = await prisma.roomMember.findMany({
+    where: {
+      roomId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  return res.json({
+    members: members.map((member) => member.user),
+  });
+});
+
+router.delete("/:roomId/members/:userId", async (req, res) => {
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  if (!session?.user) {
+    return res.status(401).json({
+      error: "Not logged in",
+    });
+  }
+
+  const { roomId, userId } = req.params;
+
+  const room = await prisma.room.findUnique({
+    where: {
+      id: roomId,
+    },
+  });
+
+  if (!room) {
+    return res.status(404).json({
+      error: "Room not found",
+    });
+  }
+
+  if (room.ownerId !== session.user.id) {
+    return res.status(403).json({
+      error: "Only the room owner can remove members",
+    });
+  }
+
+  const membership = await prisma.roomMember.findUnique({
+    where: {
+      userId_roomId: {
+        userId,
+        roomId,
+      },
+    },
+  });
+
+  if (!membership) {
+    return res.status(404).json({
+      error: "User is not a member of this room",
+    });
+  }
+
+  await prisma.roomMember.delete({
+    where: {
+      userId_roomId: {
+        userId,
+        roomId,
+      },
+    },
+  });
+
+  return res.json({
+    message: "Member removed",
+  });
+});
+
+
 export default router;

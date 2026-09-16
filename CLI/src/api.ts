@@ -1,18 +1,15 @@
 import { saveAuth } from "./auth.ts";
 const API = "http://localhost:3000";
-let authtoken : string | null = null;
-export function settoken(token:string){
-    authtoken = token;
+let authtoken: string | null = null;
+export function settoken(token: string) {
+  authtoken = token;
 }
 
-export function gettoken(){
-    return authtoken;
+export function gettoken() {
+  return authtoken;
 }
 
-export async function apiFetch(
-  path: string,
-  options: RequestInit = {},
-) {
+export async function apiFetch(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
 
   headers.set("Content-Type", "application/json");
@@ -27,21 +24,20 @@ export async function apiFetch(
   });
 }
 
-
-export async function register(name:String,email:String,password:String){
-  const response = await apiFetch("/api/auth/sign-up/email",{
-    method:"POST",
-    body:JSON.stringify({
+export async function register(name: String, email: String, password: String) {
+  const response = await apiFetch("/api/auth/sign-up/email", {
+    method: "POST",
+    body: JSON.stringify({
       name,
       email,
-      password
-    })
+      password,
+    }),
   });
-  const data = await response.json() as any;
-  if(!response.ok){
-     throw new Error(data.message ?? "Registration failed");
+  const data = (await response.json()) as any;
+  if (!response.ok) {
+    throw new Error(data.message ?? "Registration failed");
   }
-  if(data.token){
+  if (data.token) {
     settoken(data.token);
     saveAuth(data.token);
   }
@@ -57,7 +53,7 @@ export async function login(email: string, password: string) {
     }),
   });
 
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
 
   if (!response.ok) {
     throw new Error(data.message ?? "Login failed");
@@ -73,20 +69,53 @@ export async function login(email: string, password: string) {
 
 //ROOMS API CAL
 
-export async function createroom(name:string){
-  const response = await apiFetch("/api/rooms",{
-    method:"POST",
-    body:JSON.stringify({
+export async function createroom(name: string) {
+  const response = await apiFetch("/api/rooms", {
+    method: "POST",
+    body: JSON.stringify({
       name,
-    })
-  })
-
-  const data = await response.json() as any;
-
-  if(!response.ok){
+    }),
+  });
+  const data = (await response.json()) as any;
+  if (!response.ok) {
     throw new Error(data.message ?? "failed to create room");
   }
-
-  return data;
+  return data.room;
 }
 
+export async function getroom() {
+  const response = await apiFetch("/api/rooms");
+  const data = (await response.json()) as any;
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to fetch rooms");
+  }
+  return data.room;
+}
+
+// message api
+export async function getmessage(roomId: string) {
+  const response = await apiFetch(`/api/rooms/${roomId}/messages`);
+
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to get messages");
+  }
+
+  return data.messages;
+}
+
+export async function sendmessage(roomId: string, content: string) {
+  const response = await apiFetch(`/api/rooms/${roomId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to send message");
+  }
+
+  return data.message;
+}

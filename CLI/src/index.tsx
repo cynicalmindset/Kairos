@@ -1,5 +1,5 @@
 import { Box, render, Text } from "ink";
-import { register, login } from "./api.ts";
+import { register, login, getroom, createroom } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
 import { clearAuth, getSavedToken } from "./auth.ts";
@@ -8,6 +8,11 @@ import { settoken } from "./api.ts";
 type Mode = "chat" | "register" | "login";
 
 function App() {
+  const [midtext, setmidtext] = useState("");
+  const [roomname, setroomname] = useState("");
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [rooms, setrooms] = useState<any[]>([]);
+  const [listroom, setlistroom] = useState(false);
   const [mode, setmode] = useState<Mode>("chat");
   const [message, setmessage] = useState("");
   const [messages, setmessages] = useState<String[]>([]);
@@ -33,8 +38,45 @@ function App() {
     }
   }, []);
 
-  const handlesubmit = () => {
+  useEffect(() => {
+    if (!logged || mode !== "chat") return;
+    getroom()
+      .then((data) => {
+        setrooms(data);
+      })
+      .catch((error) => {
+        seterror(error);
+      });
+  }, [logged,mode]);
+
+  const handlesubmit = async () => {
     if (!message.trim()) return;
+
+    if (message.trim() === "/create") {
+      setIsCreatingRoom(true);
+      setmessage("");
+      setmessages([]);
+      return;
+    }
+    if (message.trim() === "/rooms") {
+  try {
+    const data = await getroom();
+    // console.log(data)
+    setrooms(data);
+    setlistroom(true);
+    setempyt(false);
+    setshowcommands(false);
+    setmessage("");
+  } catch (error) {
+    seterror(
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch rooms"
+    );
+  }
+
+  return;
+}
     if (message.trim() === "/logout") {
       clearAuth();
       setlogged(false);
@@ -54,6 +96,8 @@ function App() {
       return;
     }
     if (message.trim() === "/clear") {
+      setmidtext("");
+      setlistroom(false);
       setempyt(true);
       setshowcommands(false);
       setmessages([]);
@@ -225,6 +269,30 @@ function App() {
           </Box>
         )}
 
+        {midtext && (
+          <Box justifyContent="center" alignItems="center">
+            <Text color="gray">{midtext}</Text>
+          </Box>
+        )}
+
+        {listroom && (
+          <Box
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Box marginY={1}>
+            <Text bold>Rooms</Text>
+            </Box>
+
+            {rooms.map((room) => (
+              <Text key={room.id} color="gray">
+                {room.name}
+              </Text>
+            ))}
+          </Box>
+        )}
+
         {showcommads && (
           <Box
             flexDirection="column"
@@ -255,12 +323,40 @@ function App() {
 
       <Box borderStyle="single">
         <Text color={"red"}>{" > "}</Text>
-        <TextInput
-          value={message}
-          onChange={setmessage}
-          onSubmit={handlesubmit}
-          placeholder="/help for commands"
-        />
+        {isCreatingRoom ? (
+          <TextInput
+            placeholder="enter room name..."
+            value={roomname}
+            onChange={setroomname}
+            onSubmit={async (name) => {
+              if (!name.trim()) {
+                // get it to message box not input filed
+                seterror("Room name cannot be empty");
+                return;
+              }
+
+              try {
+                const room = await createroom(name.trim());
+                setrooms((prev) => [...prev, room]);
+                setIsCreatingRoom(false);
+                setmidtext(`Created room: ${room.name}`);
+              } catch (error) {
+                seterror(
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to create room",
+                );
+              }
+            }}
+          ></TextInput>
+        ) : (
+          <TextInput
+            value={message}
+            onChange={setmessage}
+            onSubmit={handlesubmit}
+            placeholder="/help for commands"
+          />
+        )}
       </Box>
     </Box>
   );
