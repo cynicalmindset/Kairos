@@ -18,6 +18,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
     "@prisma/client": "6.19.0",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.7.4",

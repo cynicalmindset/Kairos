@@ -31,17 +31,21 @@ router.get("/", async (req, res) => {
     });
   }
 
-  const message = await prisma.message.findMany({
-    where: {
-      roomId,
+  const messages = await prisma.message.findMany({
+    where: { roomId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
-    orderBy: {
-      createdAt: "asc",
-    },
+    orderBy: { createdAt: "asc" },
   });
 
   return res.json({
-    message,
+    messages,
   });
 });
 
@@ -81,12 +85,20 @@ router.post("/", async (req, res) => {
   }
 
   const message = await prisma.message.create({
-    data: {
-      content: content.trim(),
-      userId: session.user.id,
-      roomId,
+  data: {
+    content,
+    userId: session.user.id,
+    roomId,
+  },
+  include: {
+    user: {
+      select: {
+        id: true,
+        name: true,
+      },
     },
-  });
+  },
+});
 
   return res.json({
     message,

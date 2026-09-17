@@ -83,6 +83,17 @@ export async function createroom(name: string) {
   return data.room;
 }
 
+export async function joinroom(roomId: string) {
+  const response = await apiFetch(`/api/rooms/${roomId}/join`, {
+    method: "POST",
+  });
+  const data = (await response.json()) as any;
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to join room");
+  }
+  return data;
+}
+
 export async function getroom() {
   const response = await apiFetch("/api/rooms");
   const data = (await response.json()) as any;
@@ -92,11 +103,20 @@ export async function getroom() {
   return data.room;
 }
 
+
+
+
+
+
+
+
+
 // message api
 export async function getmessage(roomId: string) {
   const response = await apiFetch(`/api/rooms/${roomId}/messages`);
 
   const data = (await response.json()) as any;
+  // console.log(data.messages);
 
   if (!response.ok) {
     throw new Error(data.error ?? "Failed to get messages");

@@ -1,5 +1,13 @@
-import { Box, render, Text } from "ink";
-import { register, login, getroom, createroom } from "./api.ts";
+import { Box, render, Text, useInput } from "ink";
+import {
+  register,
+  login,
+  getroom,
+  createroom,
+  getmessage,
+  sendmessage,
+  joinroom,
+} from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
 import { clearAuth, getSavedToken } from "./auth.ts";
@@ -8,6 +16,8 @@ import { settoken } from "./api.ts";
 type Mode = "chat" | "register" | "login";
 
 function App() {
+  const [activeroom, setactiveroom] = useState<any | null>(null);
+  const [selectedroom, setselectedroom] = useState(0);
   const [midtext, setmidtext] = useState("");
   const [roomname, setroomname] = useState("");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -15,7 +25,7 @@ function App() {
   const [listroom, setlistroom] = useState(false);
   const [mode, setmode] = useState<Mode>("chat");
   const [message, setmessage] = useState("");
-  const [messages, setmessages] = useState<String[]>([]);
+  const [messages, setmessages] = useState<any[]>([]);
   const visibleMessages = messages.slice(-25);
   const [showcommads, setshowcommands] = useState(false);
   const [empty, setempyt] = useState(true);
@@ -28,6 +38,37 @@ function App() {
     "name" | "email" | "password"
   >("name");
   const [loginstep, setloginstep] = useState<"email" | "password">("email");
+
+  useInput(async (_input, key) => {
+    if (!listroom || rooms.length === 0) return;
+
+    if (key.upArrow) {
+      setselectedroom((prev) => (prev > 0 ? prev - 1 : rooms.length - 1));
+    }
+
+    if (key.downArrow) {
+      setselectedroom((prev) => (prev < rooms.length - 1 ? prev + 1 : 0));
+    }
+
+    if (key.return) {
+      const room = rooms[selectedroom];
+
+      //   setlistroom(false);
+      //   setmidtext(`Joined ${room.name}`);
+      try {
+        const data = await getmessage(room.id);
+        setactiveroom(room);
+        setmessages(data);
+        setlistroom(false);
+        setempyt(false);
+        setmidtext(`# ${room.name}\n`);
+      } catch (error) {
+        seterror(
+          error instanceof Error ? error.message : "failed to open room",
+        );
+      }
+    }
+  });
 
   useEffect(() => {
     const token = getSavedToken();
@@ -47,7 +88,7 @@ function App() {
       .catch((error) => {
         seterror(error);
       });
-  }, [logged,mode]);
+  }, [logged, mode]);
 
   const handlesubmit = async () => {
     if (!message.trim()) return;
@@ -58,25 +99,32 @@ function App() {
       setmessages([]);
       return;
     }
-    if (message.trim() === "/rooms") {
-  try {
-    const data = await getroom();
-    // console.log(data)
-    setrooms(data);
-    setlistroom(true);
-    setempyt(false);
-    setshowcommands(false);
-    setmessage("");
-  } catch (error) {
-    seterror(
-      error instanceof Error
-        ? error.message
-        : "Failed to fetch rooms"
-    );
-  }
 
+    if (message.trim() === "/back") {
+  setactiveroom(null);
+  setmessages([]);
+  setmidtext("");
+  setmessage("");
   return;
 }
+    if (message.trim() === "/rooms") {
+      try {
+        const data = await getroom();
+
+        setrooms(data);
+        setselectedroom(0);
+        setlistroom(true);
+        setempyt(false);
+        setshowcommands(false);
+        setmessage("");
+      } catch (error) {
+        seterror(
+          error instanceof Error ? error.message : "Failed to fetch rooms",
+        );
+      }
+
+      return;
+    }
     if (message.trim() === "/logout") {
       clearAuth();
       setlogged(false);
@@ -110,7 +158,20 @@ function App() {
       setmessage("");
       return;
     }
-    setmessages((prev) => [...prev, message]);
+    // setmessages((prev) => [...prev, message]);
+
+    if(activeroom){
+        try {
+            const newmsg = await sendmessage(
+                activeroom.id , message.trim()
+            )
+            setmessages((prev)=>[...prev,newmsg])
+            setmessage("");
+        } catch (e) {
+            e instanceof Error ? e.message : "failed to sned message"
+        }
+    
+    }
     setmessage("");
   };
 
@@ -282,11 +343,15 @@ function App() {
             alignItems="center"
           >
             <Box marginY={1}>
-            <Text bold>Rooms</Text>
+              <Text bold>Rooms</Text>
             </Box>
 
-            {rooms.map((room) => (
-              <Text key={room.id} color="gray">
+            {rooms.map((room, index) => (
+              <Text
+                key={room.id}
+                color={index === selectedroom ? "red" : "gray"}
+              >
+                {index === selectedroom ? "> " : "  "}
                 {room.name}
               </Text>
             ))}
@@ -307,6 +372,7 @@ function App() {
               {"/join      - Join a room\n"}
               {"/create    - Create a room\n"}
               {"/rooms     - List rooms\n"}
+              {"/back      - get back to home\n"}
               {"/logout    - Logout\n"}
               {"/clear     - clear text box\n"}
               {"/visit     - open our website\n"}
@@ -314,9 +380,9 @@ function App() {
           </Box>
         )}
         {visibleMessages.map((msg, index) => (
-          <Text key={index}>
-            <Text color={"red"}>You: </Text>
-            {msg}
+          <Text key={msg.id ?? index}>
+            <Text color="red">{msg.user.name}: </Text>
+            {msg.content}
           </Text>
         ))}
       </Box>
