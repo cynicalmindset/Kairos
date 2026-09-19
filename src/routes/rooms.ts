@@ -174,6 +174,8 @@ router.post("/", async (req, res) => {
 });
 
 
+//leave room
+
 router.delete("/:roomId/leave", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -217,6 +219,8 @@ router.delete("/:roomId/leave", async (req, res) => {
 });
 
 
+//deleteroom
+
 router.delete("/:roomId", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -258,6 +262,8 @@ router.delete("/:roomId", async (req, res) => {
     message: "Room deleted",
   });
 });
+
+//room memebers list
 
 router.get("/:roomId/members", async (req, res) => {
   const session = await auth.api.getSession({
@@ -307,6 +313,8 @@ router.get("/:roomId/members", async (req, res) => {
     members: members.map((member) => member.user),
   });
 });
+
+//kick memeber
 
 router.delete("/:roomId/members/:userId", async (req, res) => {
   const session = await auth.api.getSession({
@@ -367,6 +375,9 @@ router.delete("/:roomId/members/:userId", async (req, res) => {
     message: "Member removed",
   });
 });
+
+
+// file share
 
 
 export default router;

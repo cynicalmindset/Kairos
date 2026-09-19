@@ -28,6 +28,7 @@ model User {
   memberships RoomMember[]
   messages    Message[]
   files       File[]
+  sentFileShares FileShare[]
 }
 
 model Session {
@@ -96,6 +97,7 @@ model Room {
   members  RoomMember[]
   messages Message[]
   files    File[]
+  fileShares FileShare[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,6 +149,24 @@ model File {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model FileShare {
+  id String @id @default(cuid()) @map("_id")
+
+  fileName String
+  filePath String
+  fileSize Int
+
+  senderId String
+  roomId   String
+
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  status String @default("pending")
 
   createdAt DateTime @default(now())
 }

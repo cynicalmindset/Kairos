@@ -24,6 +24,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   });
 }
 
+// Auth API
+
 export async function register(name: String, email: String, password: String) {
   const response = await apiFetch("/api/auth/sign-up/email", {
     method: "POST",
@@ -103,10 +105,6 @@ export async function getroom() {
   return data.room;
 }
 
-
-
-
-
 export async function getroombyid(roomId: string) {
   const response = await apiFetch(`/api/rooms/${roomId}`);
 
@@ -149,3 +147,7 @@ export async function sendmessage(roomId: string, content: string) {
 
   return data.message;
 }
+
+
+// file sharing API
+
