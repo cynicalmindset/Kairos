@@ -1,4 +1,6 @@
 import { Box, render, Text, useInput } from "ink";
+import { joinroomies, sendSocketMessage, setMessageHandler } from "../../src/socket.ts";
+// import "../../src/socket/index.ts"
 import {
   register,
   login,
@@ -7,6 +9,7 @@ import {
   getmessage,
   sendmessage,
   joinroom,
+  getroombyid
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -56,6 +59,7 @@ function App() {
       //   setlistroom(false);
       //   setmidtext(`Joined ${room.name}`);
       try {
+        joinroomies(room.id);
         const data = await getmessage(room.id);
         setactiveroom(room);
         setmessages(data);
@@ -69,6 +73,12 @@ function App() {
       }
     }
   });
+
+  useEffect(() => {
+  setMessageHandler((newMessage) => {
+    setmessages((prev) => [...prev, newMessage]);
+  });
+}, []);
 
   useEffect(() => {
     const token = getSavedToken();
@@ -93,6 +103,42 @@ function App() {
   const handlesubmit = async () => {
     if (!message.trim()) return;
 
+
+if (message.trim().startsWith("/join ")) {
+  const roomId = message.trim().slice(6).trim();
+
+  if (!roomId) {
+    seterror("Room ID is required");
+    return;
+  }
+
+  try {
+    await joinroom(roomId);
+
+    const room = await getroombyid(roomId);
+
+    joinroomies(roomId);
+
+    const data = await getmessage(roomId);
+
+    setactiveroom(room);
+    setmessages(data);
+    setlistroom(false);
+    setempyt(false);
+    setmidtext(`# ${room.name}`);
+    setmessage("");
+    seterror("");
+  } catch (error) {
+    seterror(
+      error instanceof Error
+        ? error.message
+        : "Failed to join room"
+    );
+  }
+
+  return;
+}
+
     if (message.trim() === "/create") {
       setIsCreatingRoom(true);
       setmessage("");
@@ -101,12 +147,12 @@ function App() {
     }
 
     if (message.trim() === "/back") {
-  setactiveroom(null);
-  setmessages([]);
-  setmidtext("");
-  setmessage("");
-  return;
-}
+      setactiveroom(null);
+      setmessages([]);
+      setmidtext("");
+      setmessage("");
+      return;
+    }
     if (message.trim() === "/rooms") {
       try {
         const data = await getroom();
@@ -160,18 +206,28 @@ function App() {
     }
     // setmessages((prev) => [...prev, message]);
 
-    if(activeroom){
-        try {
-            const newmsg = await sendmessage(
-                activeroom.id , message.trim()
-            )
-            setmessages((prev)=>[...prev,newmsg])
-            setmessage("");
-        } catch (e) {
-            e instanceof Error ? e.message : "failed to sned message"
-        }
-    
-    }
+if (activeroom) {
+  try {
+    const sentmessage = await sendmessage(
+      activeroom.id,
+      message.trim(),
+    );
+
+    sendSocketMessage(
+      activeroom.id,
+      message.trim(),
+      sentmessage.user,
+    );
+
+    setmessage("");
+  } catch (error) {
+    seterror(
+      error instanceof Error
+        ? error.message
+        : "Failed to send message",
+    );
+  }
+}
     setmessage("");
   };
 

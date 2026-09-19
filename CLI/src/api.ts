@@ -107,7 +107,17 @@ export async function getroom() {
 
 
 
+export async function getroombyid(roomId: string) {
+  const response = await apiFetch(`/api/rooms/${roomId}`);
 
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to get room");
+  }
+
+  return data.room;
+}
 
 
 
