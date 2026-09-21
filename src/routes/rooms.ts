@@ -432,4 +432,191 @@ router.post("/:roomId/share", async (req, res) => {
   }
 });
 
+router.get("/:roomId/shares", async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const { roomId } = req.params;
+
+    const membership = await prisma.roomMember.findUnique({
+      where: {
+        userId_roomId: {
+          userId: session.user.id,
+          roomId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        error: "You are not a member of this room",
+      });
+    }
+
+    const fileShares = await (prisma as any).fileShare.findMany({
+      where: {
+        roomId,
+        status: "pending",
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    return res.json({
+      fileShares,
+    });
+  } catch (error) {
+    console.error("FILE SHARES ERROR:", error);
+
+    return res.status(500).json({
+      error: "Failed to fetch file shares",
+    });
+  }
+});
+
+router.post("/:roomId/shares/:shareId/accept", async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const { roomId, shareId } = req.params;
+
+    const membership = await prisma.roomMember.findUnique({
+      where: {
+        userId_roomId: {
+          userId: session.user.id,
+          roomId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        error: "You are not a member of this room",
+      });
+    }
+
+    const fileShare = await (prisma as any).fileShare.findFirst({
+      where: {
+        id: shareId,
+        roomId,
+        status: "pending",
+      },
+    });
+
+    if (!fileShare) {
+      return res.status(404).json({
+        error: "File share not found",
+      });
+    }
+
+    const updatedShare = await prisma.fileShare.update({
+      where: {
+        id: shareId,
+      },
+      data: {
+        status: "accepted",
+      },
+    });
+
+    return res.json({
+      fileShare: updatedShare,
+    });
+  } catch (error) {
+    console.error("ACCEPT SHARE ERROR:", error);
+
+    return res.status(500).json({
+      error: "Failed to accept file share",
+    });
+  }
+});
+
+router.post("/:roomId/shares/:shareId/reject", async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const { roomId, shareId } = req.params;
+
+    const membership = await prisma.roomMember.findUnique({
+      where: {
+        userId_roomId: {
+          userId: session.user.id,
+          roomId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        error: "You are not a member of this room",
+      });
+    }
+
+    const fileShare = await (prisma as any).fileShare.findFirst({
+      where: {
+        id: shareId,
+        roomId,
+        status: "pending",
+      },
+    });
+
+    if (!fileShare) {
+      return res.status(404).json({
+        error: "File share not found",
+      });
+    }
+
+    const updatedShare = await (prisma as any).fileShare.update({
+      where: {
+        id: shareId,
+      },
+      data: {
+        status: "rejected",
+      },
+    });
+
+    return res.json({
+      fileShare: updatedShare,
+    });
+  } catch (error) {
+    console.error("REJECT SHARE ERROR:", error);
+
+    return res.status(500).json({
+      error: "Failed to accept file share",
+    });
+  }
+});
+
 export default router;

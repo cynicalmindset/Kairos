@@ -117,8 +117,6 @@ export async function getroombyid(roomId: string) {
   return data.room;
 }
 
-
-
 // message api
 export async function getmessage(roomId: string) {
   const response = await apiFetch(`/api/rooms/${roomId}/messages`);
@@ -148,6 +146,28 @@ export async function sendmessage(roomId: string, content: string) {
   return data.message;
 }
 
-
 // file sharing API
 
+export async function createshare(
+  roomId: string,
+  fileName: string,
+  filePath: string,
+  fileSize: number,
+) {
+  const response = await apiFetch(`/api/rooms/${roomId}/share`, {
+    method: "POST",
+    body: JSON.stringify({
+      fileName,
+      filePath,
+      fileSize,
+    }),
+  });
+
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to create file share");
+  }
+
+  return data.fileshare;
+}

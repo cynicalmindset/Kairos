@@ -1,3 +1,5 @@
+import { existsSync, stat, statSync } from "fs";
+import path from "path";
 import { Box, render, Text, useInput } from "ink";
 import {
   joinroomies,
@@ -14,6 +16,7 @@ import {
   sendmessage,
   joinroom,
   getroombyid,
+  createshare,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -106,6 +109,58 @@ function App() {
 
   const handlesubmit = async () => {
     if (!message.trim()) return;
+
+    if (message.trim().startsWith("/share")) {
+      if (!activeroom) {
+        seterror("join a room first");
+        console.log("join a room first");
+        return;
+      }
+
+      const filepath = message.trim().slice(7).trim();
+
+      if (!filepath) {
+        seterror("file path is required");
+        console.log("file path is required");
+        return;
+      }
+
+      if (!existsSync(filepath)) {
+        seterror("file does not exist");
+        console.log("file does not exist");
+        return;
+      }
+
+      try {
+        const stats = statSync(filepath);
+        if (!stats.isFile()) {
+          seterror("path is not a file");
+          console.log("path is not a file");
+          return;
+        }
+
+        const filename = path.basename(filepath);
+        const fileshare = await createshare(
+          activeroom.id,
+          filename,
+          filepath,
+          stats.size,
+        );
+
+        if(fileshare){
+          console.log("file shared")
+        }
+
+        setmessage("");
+        seterror("");
+      } catch (error) {
+        seterror(
+          error instanceof Error ? error.message : "Failed to share file",
+        );
+        console.log(error)
+      }
+      return;
+    }
 
     if (message.trim().startsWith("/join ")) {
       const roomId = message.trim().slice(6).trim();
