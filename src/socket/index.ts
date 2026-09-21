@@ -18,33 +18,35 @@ const wsserver = Bun.serve({
     message(ws: any, message: string) {
       console.log("Received:", message);
       const data = JSON.parse(message);
-     if (data.type === "new_message") {
-  // console.log("NEW MESSAGE RECEIVED");
-  // console.log("Room:", data.roomId);
-  // console.log("Content:", data.content);
-  // console.log("User:", data.user);
-  // console.log("Full data:", data);
 
-  const clients = rooms.get(data.roomId);
+      if (data.type === "new_message") {
+        // console.log("NEW MESSAGE RECEIVED");
+        // console.log("Room:", data.roomId);
+        // console.log("Content:", data.content);
+        // console.log("User:", data.user);
+        // console.log("Full data:", data);
 
-  if (!clients) {
-    console.log("NO CLIENTS IN ROOM");
-    return;
-  }
+        const clients = rooms.get(data.roomId);
 
-  for (const client of clients) {
-    console.log("BROADCASTING TO CLIENT");
+        if (!clients) {
+          console.log("NO CLIENTS IN ROOM");
+          return;
+        }
 
-    client.send(
-      JSON.stringify({
-        type: "new_message",
-        roomId: data.roomId,
-        content: data.content,
-        user: data.user,
-      }),
-    );
-  }
-}
+        for (const client of clients) {
+          console.log("BROADCASTING TO CLIENT");
+
+          client.send(
+            JSON.stringify({
+              type: "new_message",
+              roomId: data.roomId,
+              content: data.content,
+              user: data.user,
+            }),
+          );
+        }
+      }
+
       if (data.type === "join_room") {
         const roomId = data.roomId;
 
@@ -59,6 +61,29 @@ const wsserver = Bun.serve({
         console.log(
           `Client joined room ${roomId}. Members: ${rooms.get(roomId)!.size}`,
         );
+      }
+
+      if (data.type === "file_share") {
+        const clients = rooms.get(data.roomId);
+        if (!clients) {
+          console.log("no clients in the room ");
+          return;
+        }
+        console.log("FILE SHARE RECEIVED:", data);
+        for (const client of clients) {
+          console.log("Broadcasting file share");
+
+          client.send(
+            JSON.stringify({
+              type: "file_share",
+              roomId: data.roomId,
+              shareId: data.shareId,
+              fileName: data.fileName,
+              fileSize: data.fileSize,
+              user: data.user,
+            }),
+          );
+        }
       }
     },
 
