@@ -48,7 +48,6 @@ router.post("/:roomId/join", async (req, res) => {
       userId: session.user.id,
       roomId,
     },
-    
   });
 
   return res.status(201).json({
@@ -173,7 +172,6 @@ router.post("/", async (req, res) => {
   });
 });
 
-
 //leave room
 
 router.delete("/:roomId/leave", async (req, res) => {
@@ -217,7 +215,6 @@ router.delete("/:roomId/leave", async (req, res) => {
     message: "Left room",
   });
 });
-
 
 //deleteroom
 
@@ -376,8 +373,63 @@ router.delete("/:roomId/members/:userId", async (req, res) => {
   });
 });
 
-
 // file share
+router.post("/:roomId/share", async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
 
+    if (!session) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
+    const { roomId } = req.params;
+    const { fileName, filePath, fileSize } = req.body;
+
+    if (!fileName || !filePath || !fileSize) {
+      return res.status(400).json({
+        error: "File information is required",
+      });
+    }
+
+    const membership = await prisma.roomMember.findUnique({
+      where: {
+        userId_roomId: {
+          userId: session.user.id,
+          roomId,
+        },
+      },
+    });
+
+    if (!membership) {
+      return res.status(404).json({
+        error: "User is not a member of this room",
+      });
+    }
+
+    const fileshare = await (prisma as any).fileShare.create({
+      data: {
+        fileName,
+        filePath,
+        fileSize,
+        senderId: session.user.id,
+        roomId,
+      },
+    });
+
+    return res.json({
+      fileshare,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Failed to create file share",
+    });
+  }
+});
 
 export default router;
