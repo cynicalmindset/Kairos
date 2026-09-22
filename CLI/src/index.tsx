@@ -5,6 +5,7 @@ import {
   joinroomies,
   sendSocketMessage,
   setMessageHandler,
+  sendFileShare
 } from "../../src/socket.ts";
 // import "../../src/socket/index.ts"
 import {
@@ -145,6 +146,13 @@ function App() {
           filename,
           filepath,
           stats.size,
+        );
+        sendFileShare(
+          activeroom.id,
+          fileshare.id,
+          fileshare.fileName,
+          fileshare.fileSize,
+          fileshare.sender
         );
 
         if(fileshare){
@@ -482,12 +490,36 @@ function App() {
             </Text>
           </Box>
         )}
-        {visibleMessages.map((msg, index) => (
-          <Text key={msg.id ?? index}>
-            <Text color="red">{msg.user.name}: </Text>
-            {msg.content}
-          </Text>
-        ))}
+       {visibleMessages.map((msg, index) => {
+          if (msg.type === "file_share") {
+            return (
+              <Text key={msg.shareId ?? index}>
+                <Text color="yellow">
+                  {msg.user?.name ?? "Someone"} wants to share:
+                </Text>
+                {"\n"}
+                <Text>
+                  {msg.fileName} ({msg.fileSize} bytes)
+                </Text>
+                {"\n"}
+                <Text color="gray">
+                  /accept {msg.shareId}
+                </Text>
+                {"  "}
+                <Text color="gray">
+                  /reject {msg.shareId}
+                </Text>
+              </Text>
+            );
+          }
+
+          return (
+            <Text key={msg.id ?? index}>
+              <Text color="red">{msg.user?.name ?? "You"}: </Text>
+              {msg.content}
+            </Text>
+          );
+        })}
       </Box>
 
       <Box borderStyle="single">

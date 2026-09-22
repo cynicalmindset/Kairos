@@ -10,7 +10,7 @@ let onmessage: ((message: any) => void) | null = null;
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
-  if (data.type === "new_message") {
+  if (data.type === "new_message" || data.type === "file_share") {
     onmessage?.(data);
   }
 };
@@ -49,6 +49,25 @@ export function sendSocketMessage(
       type: "new_message",
       roomId,
       content,
+      user,
+    }),
+  );
+}
+
+export function sendFileShare(
+  roomId: string,
+  shareId: string,
+  fileName: string,
+  fileSize: number,
+  user: any,
+) {
+  ws.send(
+    JSON.stringify({
+      type: "file_share",
+      roomId,
+      shareId,
+      fileName,
+      fileSize,
       user,
     }),
   );

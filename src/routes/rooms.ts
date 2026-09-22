@@ -410,13 +410,21 @@ router.post("/:roomId/share", async (req, res) => {
       });
     }
 
-    const fileshare = await (prisma as any).fileShare.create({
+    const fileshare = await prisma.fileShare.create({
       data: {
         fileName,
         filePath,
         fileSize,
         senderId: session.user.id,
         roomId,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
