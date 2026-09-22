@@ -2,6 +2,12 @@ import { Router } from "express";
 const router = Router();
 import { prisma } from "../lib/prisma.ts";
 import { auth } from "../auth";
+import multer from "multer";
+import { mkdir } from "fs/promises";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
 
 //join room
 router.post("/:roomId/join", async (req, res) => {
@@ -173,7 +179,6 @@ router.post("/", async (req, res) => {
 });
 
 //leave room
-
 router.delete("/:roomId/leave", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -217,7 +222,6 @@ router.delete("/:roomId/leave", async (req, res) => {
 });
 
 //deleteroom
-
 router.delete("/:roomId", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -261,7 +265,6 @@ router.delete("/:roomId", async (req, res) => {
 });
 
 //room memebers list
-
 router.get("/:roomId/members", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -312,7 +315,6 @@ router.get("/:roomId/members", async (req, res) => {
 });
 
 //kick memeber
-
 router.delete("/:roomId/members/:userId", async (req, res) => {
   const session = await auth.api.getSession({
     headers: req.headers,
@@ -626,5 +628,183 @@ router.post("/:roomId/shares/:shareId/reject", async (req, res) => {
     });
   }
 });
+
+// file server upload
+router.post("/:roomId/shares/:shareId/upload",upload.single("file"),async (req,res)=>{
+  try {
+    const session = await auth.api.getSession({
+      headers:req.headers
+    });
+    if(!session){
+      return res.status(403).json({
+        error:"unauthorized"
+      })
+    }
+
+    const { roomId, shareId } = req.params;
+    const normalizedRoomId = Array.isArray(roomId) ? roomId[0] : roomId;
+    const normalizedShareId = Array.isArray(shareId) ? shareId[0] : shareId;
+
+    if (!normalizedRoomId || !normalizedShareId) {
+      return res.status(400).json({
+        error: "Missing room or share id",
+      });
+    }
+
+    const membership = await prisma.roomMember.findUnique({
+      where:{
+        userId_roomId:{
+          userId: session.user.id,
+          roomId: normalizedRoomId,
+        }
+      }
+    })
+    if(!membership){
+      return res.status(403).json({
+        error: "you are not a part of this room"
+      })
+    }
+
+    const fileshare = await prisma.fileShare.findFirst({
+      where:{
+        id: normalizedShareId,
+        roomId: normalizedRoomId,
+        senderId: session.user.id,
+        status: "pending"
+      }
+    });
+
+    if(!fileshare){
+      return res.status(404).json({
+        error: "file not found"
+      })
+    }
+
+    // const formdata = await req.formdata();
+    // const file = formdata.get("file");
+
+    // if(!(file instanceof File)){
+    //   return res.status(400).json({
+    //     error:"file is required"
+    //   })
+    // }
+
+    const file = req.file;
+
+if (!file) {
+  return res.status(400).json({
+    error: "File is required",
+  });
+}
+
+    const shareDir = `./uploads/${normalizedShareId}`;
+
+    await mkdir(shareDir, { recursive: true });
+
+    await Bun.write(
+      `${shareDir}/${fileshare.fileName}`,
+      file.buffer,
+    );
+
+    return res.json({
+      message: "File uploaded successfully",
+      path: `${shareDir}/${fileshare.fileName}`,
+    });
+
+  } catch (error) {
+    console.error("UPLOAD FILE ERROR:", error);
+
+    return res.status(500).json({
+      error: "Failed to upload file",
+    });
+  }
+});
+
+
+router.get(
+  "/:roomId/shares/:shareId/download",
+  async (req, res) => {
+    try {
+      const session = await auth.api.getSession({
+        headers: req.headers,
+      });
+
+      if (!session) {
+        return res.status(403).json({
+          error: "unauthorized",
+        });
+      }
+
+      const { roomId, shareId } = req.params;
+
+      const normalizedRoomId = Array.isArray(roomId)
+        ? roomId[0]
+        : roomId;
+
+      const normalizedShareId = Array.isArray(shareId)
+        ? shareId[0]
+        : shareId;
+
+      const membership = await prisma.roomMember.findUnique({
+        where: {
+          userId_roomId: {
+            userId: session.user.id,
+            roomId: normalizedRoomId,
+          },
+        },
+      });
+
+      if (!membership) {
+        return res.status(403).json({
+          error: "You are not a member of this room",
+        });
+      }
+
+      const fileshare = await prisma.fileShare.findFirst({
+        where: {
+          id: normalizedShareId,
+          roomId: normalizedRoomId,
+          status: "accepted",
+        },
+      });
+
+      if (!fileshare) {
+        return res.status(404).json({
+          error: "File share not found or not accepted",
+        });
+      }
+
+      const filePath = `./uploads/${normalizedShareId}/${fileshare.fileName}`;
+
+      const file = Bun.file(filePath);
+
+      if (!(await file.exists())) {
+        return res.status(404).json({
+          error: "File does not exist on server",
+        });
+      }
+
+const buffer = await file.arrayBuffer();
+
+res.setHeader(
+  "Content-Type",
+  file.type || "application/octet-stream",
+);
+
+res.setHeader(
+  "Content-Disposition",
+  `attachment; filename="${fileshare.fileName}"`,
+);
+
+return res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error("DOWNLOAD FILE ERROR:", error);
+
+      return res.status(500).json({
+        error: "Failed to download file",
+      });
+    }
+  },
+);
 
 export default router;

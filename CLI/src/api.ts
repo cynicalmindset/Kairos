@@ -1,6 +1,8 @@
 import { saveAuth } from "./auth.ts";
 const API = "http://localhost:3000";
 let authtoken: string | null = null;
+
+
 export function settoken(token: string) {
   authtoken = token;
 }
@@ -9,13 +11,21 @@ export function gettoken() {
   return authtoken;
 }
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+export async function apiFetch(
+  path: string,
+  options: RequestInit = {},
+) {
   const headers = new Headers(options.headers);
 
-  headers.set("Content-Type", "application/json");
+  if (!(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (authtoken) {
-    headers.set("Authorization", `Bearer ${authtoken}`);
+    headers.set(
+      "Authorization",
+      `Bearer ${authtoken}`,
+    );
   }
 
   return fetch(`${API}${path}`, {
@@ -170,4 +180,103 @@ export async function createshare(
   }
 
   return data.fileshare;
+}
+
+export async function acceptshare(
+  roomId: string,
+  shareId: string,
+) {
+  const response = await apiFetch(
+    `/api/rooms/${roomId}/shares/${shareId}/accept`,
+    {
+      method: "POST",
+    },
+  );
+
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to accept file share");
+  }
+
+  return data.fileshare;
+}
+
+export async function rejecttshare(
+  roomId: string,
+  shareId: string,
+) {
+  const response = await apiFetch(
+    `/api/rooms/${roomId}/shares/${shareId}/reject`,
+    {
+      method: "POST",
+    },
+  );
+
+  const data = (await response.json()) as any;
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to reject file share");
+  }
+
+  return data.fileshare;
+}
+
+
+export async function uploadshare(
+  roomId: string,
+  shareId: string,
+  filePath: string,
+){
+  const formdata = new FormData();
+  const file = Bun.file(filePath);
+
+  if (!(await file.exists())) {
+    throw new Error("File does not exist");
+  }
+
+  formdata.append("file",file);
+
+    const response = await apiFetch(
+    `/api/rooms/${roomId}/shares/${shareId}/upload`,
+    {
+      method: "POST",
+      body: formdata,
+    },
+  );
+
+  const text = await response.text();
+
+  console.log("UPLOAD STATUS:", response.status);
+  console.log("UPLOAD RESPONSE:", text);
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Server returned: ${text}`);
+  }
+
+  if(!response.ok){
+    throw new Error(data.error ?? "failed to upload data");
+  }
+
+  return data;
+}
+
+export async function downloadshare(
+  roomId: string,
+  shareId: string,
+) {
+  console.log("DOWNLOAD URL:", `/api/rooms/${roomId}/shares/${shareId}/download`);
+
+  const response = await apiFetch(
+    `/api/rooms/${roomId}/shares/${shareId}/download`,
+  );
+
+  console.log("DOWNLOAD FETCH FINISHED");
+  console.log("DOWNLOAD STATUS:", response.status);
+
+  return response;
 }

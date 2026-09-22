@@ -5,7 +5,8 @@ import {
   joinroomies,
   sendSocketMessage,
   setMessageHandler,
-  sendFileShare
+  sendFileShare,
+  
 } from "../../src/socket.ts";
 // import "../../src/socket/index.ts"
 import {
@@ -18,6 +19,10 @@ import {
   joinroom,
   getroombyid,
   createshare,
+  acceptshare,
+  rejecttshare,
+  uploadshare,
+  downloadshare
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -147,6 +152,15 @@ function App() {
           filepath,
           stats.size,
         );
+
+
+        await uploadshare(
+          activeroom.id,
+          fileshare.id,
+          filepath,
+        );
+
+
         sendFileShare(
           activeroom.id,
           fileshare.id,
@@ -167,6 +181,94 @@ function App() {
         );
         console.log(error)
       }
+      return;
+    }
+
+if (message.trim().startsWith("/accept ")) {
+  console.log("ACCEPT COMMAND STARTED");
+
+  if (!activeroom) {
+    seterror("Join a room first");
+    return;
+  }
+
+  const shareId = message.trim().slice(8).trim();
+
+  console.log("SHARE ID:", shareId);
+
+  if (!shareId) {
+    seterror("Share ID is required");
+    return;
+  }
+
+  try {
+    console.log("ACCEPTING...");
+
+    await acceptshare(activeroom.id, shareId);
+
+    console.log("ACCEPTED. DOWNLOADING...");
+
+    const response = await downloadshare(
+      activeroom.id,
+      shareId,
+    );
+
+    console.log("DOWNLOAD RESPONSE:", response.status);
+
+    const buffer = await response.arrayBuffer();
+
+    const filename =
+      response.headers
+        .get("content-disposition")
+        ?.match(/filename="(.+)"/)?.[1] ?? "shared-file";
+
+    console.log("WRITING FILE:", filename);
+
+    await Bun.write(filename, buffer);
+
+    console.log(`File downloaded: ${filename}`);
+
+    setmessage("");
+    seterror("");
+  } catch (error) {
+    console.log("ACCEPT ERROR:", error);
+
+    seterror(
+      error instanceof Error
+        ? error.message
+        : "Failed to accept file",
+    );
+  }
+
+  return;
+}
+
+    if (message.trim().startsWith("/reject ")) {
+      if (!activeroom) {
+        seterror("Join a room first");
+        return;
+      }
+
+      const shareId = message.trim().slice(8).trim();
+
+      if (!shareId) {
+        seterror("Share ID is required");
+        return;
+      }
+
+      try {
+        await rejecttshare(activeroom.id, shareId);
+
+        setmessage("");
+        seterror("");
+      } catch (error) {
+        seterror(
+          error instanceof Error
+            ? error.message
+            : "Failed to reject file share",
+        );
+      }
+
       return;
     }
 
@@ -494,10 +596,10 @@ function App() {
           if (msg.type === "file_share") {
             return (
               <Text key={msg.shareId ?? index}>
-                <Text color="yellow">
+                <Text color="red">
                   {msg.user?.name ?? "Someone"} wants to share:
                 </Text>
-                {"\n"}
+                {"  "}
                 <Text>
                   {msg.fileName} ({msg.fileSize} bytes)
                 </Text>
