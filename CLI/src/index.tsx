@@ -6,7 +6,6 @@ import {
   sendSocketMessage,
   setMessageHandler,
   sendFileShare,
-  
 } from "../../src/socket.ts";
 // import "../../src/socket/index.ts"
 import {
@@ -22,7 +21,7 @@ import {
   acceptshare,
   rejecttshare,
   uploadshare,
-  downloadshare
+  downloadshare,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -89,7 +88,24 @@ function App() {
 
   useEffect(() => {
     setMessageHandler((newMessage) => {
-      setmessages((prev) => [...prev, newMessage]);
+      setmessages((prev) => {
+        const optimisticIndex = prev.findIndex(
+          (msg) => msg.optimistic && msg.content === newMessage.content,
+        );
+
+        if (optimisticIndex !== -1) {
+          const updated = [...prev];
+
+          updated[optimisticIndex] = {
+            ...newMessage,
+            optimistic: false,
+          };
+
+          return updated;
+        }
+
+        return [...prev, newMessage];
+      });
     });
   }, []);
 
@@ -109,7 +125,7 @@ function App() {
         setrooms(data);
       })
       .catch((error) => {
-        error instanceof Error ? error.message : "something went wrong"
+        error instanceof Error ? error.message : "something went wrong";
       });
   }, [logged, mode]);
 
@@ -153,24 +169,18 @@ function App() {
           stats.size,
         );
 
-
-        await uploadshare(
-          activeroom.id,
-          fileshare.id,
-          filepath,
-        );
-
+        await uploadshare(activeroom.id, fileshare.id, filepath);
 
         sendFileShare(
           activeroom.id,
           fileshare.id,
           fileshare.fileName,
           fileshare.fileSize,
-          fileshare.sender
+          fileshare.sender,
         );
 
-        if(fileshare){
-          console.log("file shared")
+        if (fileshare) {
+          console.log("file shared");
         }
 
         setmessage("");
@@ -179,69 +189,64 @@ function App() {
         seterror(
           error instanceof Error ? error.message : "Failed to share file",
         );
-        console.log(error)
+        console.log(error);
       }
       return;
     }
 
-if (message.trim().startsWith("/accept ")) {
-  console.log("ACCEPT COMMAND STARTED");
+    if (message.trim().startsWith("/accept ")) {
+      console.log("ACCEPT COMMAND STARTED");
 
-  if (!activeroom) {
-    seterror("Join a room first");
-    return;
-  }
+      if (!activeroom) {
+        seterror("Join a room first");
+        return;
+      }
 
-  const shareId = message.trim().slice(8).trim();
+      const shareId = message.trim().slice(8).trim();
 
-  console.log("SHARE ID:", shareId);
+      console.log("SHARE ID:", shareId);
 
-  if (!shareId) {
-    seterror("Share ID is required");
-    return;
-  }
+      if (!shareId) {
+        seterror("Share ID is required");
+        return;
+      }
 
-  try {
-    console.log("ACCEPTING...");
+      try {
+        console.log("ACCEPTING...");
 
-    await acceptshare(activeroom.id, shareId);
+        await acceptshare(activeroom.id, shareId);
 
-    console.log("ACCEPTED. DOWNLOADING...");
+        console.log("ACCEPTED. DOWNLOADING...");
 
-    const response = await downloadshare(
-      activeroom.id,
-      shareId,
-    );
+        const response = await downloadshare(activeroom.id, shareId);
 
-    console.log("DOWNLOAD RESPONSE:", response.status);
+        console.log("DOWNLOAD RESPONSE:", response.status);
 
-    const buffer = await response.arrayBuffer();
+        const buffer = await response.arrayBuffer();
 
-    const filename =
-      response.headers
-        .get("content-disposition")
-        ?.match(/filename="(.+)"/)?.[1] ?? "shared-file";
+        const filename =
+          response.headers
+            .get("content-disposition")
+            ?.match(/filename="(.+)"/)?.[1] ?? "shared-file";
 
-    console.log("WRITING FILE:", filename);
+        console.log("WRITING FILE:", filename);
 
-    await Bun.write(filename, buffer);
+        await Bun.write(filename, buffer);
 
-    console.log(`File downloaded: ${filename}`);
+        console.log(`File downloaded: ${filename}`);
 
-    setmessage("");
-    seterror("");
-  } catch (error) {
-    console.log("ACCEPT ERROR:", error);
+        setmessage("");
+        seterror("");
+      } catch (error) {
+        console.log("ACCEPT ERROR:", error);
 
-    seterror(
-      error instanceof Error
-        ? error.message
-        : "Failed to accept file",
-    );
-  }
+        seterror(
+          error instanceof Error ? error.message : "Failed to accept file",
+        );
+      }
 
-  return;
-}
+      return;
+    }
 
     if (message.trim().startsWith("/reject ")) {
       if (!activeroom) {
@@ -373,12 +378,26 @@ if (message.trim().startsWith("/accept ")) {
     // setmessages((prev) => [...prev, message]);
 
     if (activeroom) {
+      const content = message.trim();
+
+      // Show immediately
+      setmessages((prev) => [
+        ...prev,
+        {
+          content,
+          user: {
+            name: "You",
+          },
+          optimistic: true,
+        },
+      ]);
+
+      setmessage("");
+
       try {
-        const sentmessage = await sendmessage(activeroom.id, message.trim());
+        const sentmessage = await sendmessage(activeroom.id, content);
 
-        sendSocketMessage(activeroom.id, message.trim(), sentmessage.user);
-
-        setmessage("");
+        sendSocketMessage(activeroom.id, content, sentmessage.user);
       } catch (error) {
         seterror(
           error instanceof Error ? error.message : "Failed to send message",
@@ -593,7 +612,7 @@ if (message.trim().startsWith("/accept ")) {
             </Text>
           </Box>
         )}
-       {visibleMessages.map((msg, index) => {
+        {visibleMessages.map((msg, index) => {
           if (msg.type === "file_share") {
             return (
               <Text key={msg.shareId ?? index}>
@@ -605,13 +624,9 @@ if (message.trim().startsWith("/accept ")) {
                   {msg.fileName} ({msg.fileSize} bytes)
                 </Text>
                 {"\n"}
-                <Text color="gray">
-                  /accept {msg.shareId}
-                </Text>
+                <Text color="gray">/accept {msg.shareId}</Text>
                 {"  "}
-                <Text color="gray">
-                  /reject {msg.shareId}
-                </Text>
+                <Text color="gray">/reject {msg.shareId}</Text>
               </Text>
             );
           }
