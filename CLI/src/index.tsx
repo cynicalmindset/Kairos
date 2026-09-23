@@ -109,7 +109,7 @@ function App() {
         setrooms(data);
       })
       .catch((error) => {
-        seterror(error);
+        error instanceof Error ? error.message : "something went wrong"
       });
   }, [logged, mode]);
 

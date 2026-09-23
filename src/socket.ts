@@ -1,10 +1,9 @@
 const WS_URL = process.env.KAIROS_WS_URL || "ws://localhost:3000/ws";
-
+console.log("WS URL:", WS_URL);
 const ws = new WebSocket(WS_URL);
 
 ws.onopen = () => {
-  console.log("Connected to WebSocket");
-//   ws.send("hello from CLI");
+  console.log("Connected to WebSocket");  
 };
 
 let onmessage: ((message: any) => void) | null = null;
@@ -23,8 +22,10 @@ export function setMessageHandler(
   onmessage = handler;
 }
 
-ws.onclose = () => {
-  console.log("WebSocket disconnected");
+ws.onclose = (event) => {
+  console.log("WebSocket CLOSED");
+  console.log("code:", event.code);
+  console.log("reason:", event.reason);
 };
 
 ws.onerror = (error) => {
