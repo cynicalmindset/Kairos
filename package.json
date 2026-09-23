@@ -14,7 +14,8 @@
     "prisma": "6.19.0"
   },
   "scripts": {
-    "dev": "nodemon --exec bun src/index.ts"
+    "dev": "nodemon --exec bun src/index.ts",
+    "kairos": "bun run CLI/src/index.tsx"
   },
   "peerDependencies": {
     "typescript": "^7.0.2"
