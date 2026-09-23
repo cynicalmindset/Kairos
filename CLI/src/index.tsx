@@ -450,7 +450,7 @@ if (message.trim().startsWith("/accept ")) {
           Kairos - Register
         </Text>
 
-        {error && <Text color="red">{error}</Text>}
+        {/* {error && <Text color="red">{error}</Text>} */}
 
         {registerstep === "name" && (
           <>
@@ -525,7 +525,8 @@ if (message.trim().startsWith("/accept ")) {
         <Text bold color="red">
           Kairos - v1
         </Text>
-        {logged && <Text color="gray">account connected</Text>}
+        {error && <Text color="red">{error}</Text>}
+        {logged && <Text color="green">$ account connected</Text>}
       </Box>
 
       <Box borderStyle="single" height={30} flexDirection="column" paddingX={1}>

@@ -1,4 +1,6 @@
-const ws = new WebSocket("ws://localhost:3001");
+const WS_URL = process.env.KAIROS_WS_URL || "ws://localhost:3000/ws";
+
+const ws = new WebSocket(WS_URL);
 
 ws.onopen = () => {
   console.log("Connected to WebSocket");

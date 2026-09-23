@@ -1,6 +1,6 @@
 const rooms = new Map<string, Set<any>>();
 const wsserver = Bun.serve({
-  port: 3001,
+  port: 3000,
 
   fetch(req, server) {
     if (server.upgrade(req)) {

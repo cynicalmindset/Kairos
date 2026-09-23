@@ -720,10 +720,8 @@ if (!file) {
   }
 });
 
-
-router.get(
-  "/:roomId/shares/:shareId/download",
-  async (req, res) => {
+//download from server
+router.get("/:roomId/shares/:shareId/download",async (req, res) => {
     try {
       const session = await auth.api.getSession({
         headers: req.headers,
@@ -784,27 +782,29 @@ router.get(
         });
       }
 
-const buffer = await file.arrayBuffer();
+    const buffer = await file.arrayBuffer();
 
-res.setHeader(
-  "Content-Type",
-  file.type || "application/octet-stream",
-);
+    res.setHeader(
+      "Content-Type",
+      file.type || "application/octet-stream",
+    );
 
-res.setHeader(
-  "Content-Disposition",
-  `attachment; filename="${fileshare.fileName}"`,
-);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${fileshare.fileName}"`,
+    );
 
-return res.send(Buffer.from(buffer));
-    } catch (error) {
-      console.error("DOWNLOAD FILE ERROR:", error);
+    return res.send(Buffer.from(buffer));
+        } catch (error) {
+          console.error("DOWNLOAD FILE ERROR:", error);
 
-      return res.status(500).json({
-        error: "Failed to download file",
-      });
-    }
-  },
-);
+          return res.status(500).json({
+            error: "Failed to download file",
+          });
+        }
+      },
+    );
+
+
 
 export default router;
