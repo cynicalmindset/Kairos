@@ -23,6 +23,7 @@ import {
   uploadshare,
   downloadshare,
   roommembers,
+  leaveroom,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -199,6 +200,35 @@ function App() {
         );
         console.log(error);
       }
+      return;
+    }
+
+    if (message.trim() === "/leave") {
+      if (!activeroom) {
+        seterror("You are not in a room");
+        setmessage("");
+        return;
+      }
+
+      try {
+        await leaveroom(activeroom.id);
+
+        setactiveroom(null);
+        setmessages([]);
+        setmember([]);
+        setmidtext("");
+        setempyt(true);
+
+        // Refresh room list
+        const updatedRooms = await getroom();
+        setrooms(updatedRooms);
+      } catch (error) {
+        seterror(
+          error instanceof Error ? error.message : "Failed to leave room",
+        );
+      }
+
+      setmessage("");
       return;
     }
 
@@ -589,17 +619,19 @@ function App() {
           </Box>
         )}
 
-        {member.map((member) => (
-          <Text key={member.id}>
-            {member.name} ({member.email})
-          </Text>
-        ))}
-
         {midtext && (
           <Box justifyContent="center" alignItems="center">
             <Text color="gray">{midtext}</Text>
           </Box>
         )}
+
+        {member.map((member) => (
+          <Box justifyContent="center" alignItems="center">
+            <Text color="gray" key={member.id}>
+              {member.name} ({member.email})
+            </Text>
+          </Box>
+        ))}
 
         {listroom && (
           <Box

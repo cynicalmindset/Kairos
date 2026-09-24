@@ -139,6 +139,20 @@ export async function roommembers(roomId: string){
   return data.members;
 }
 
+export async function leaveroom(roomId:string){
+    const response = await apiFetch(`/api/rooms/${roomId}/leave`, {
+    method: "DELETE",
+  });
+
+  const data = (await response.json()) as any;
+
+  if(!response.ok){
+    throw new Error(data.error ?? "Failed to leave");
+  }
+
+  return data;
+}
+
 // message api
 export async function getmessage(roomId: string) {
   const response = await apiFetch(`/api/rooms/${roomId}/messages`);
