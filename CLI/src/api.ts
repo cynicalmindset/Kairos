@@ -1,5 +1,5 @@
 import { saveAuth } from "./auth.ts";
-const API = process.env.API_URL;
+const API = process.env.API_URL || "http://localhost:3000";
 // const API = "https://many-hedging-frustrate.ngrok-free.dev";
 let authtoken: string | null = null;
 
@@ -126,6 +126,17 @@ export async function getroombyid(roomId: string) {
   }
 
   return data.room;
+}
+
+export async function roommembers(roomId: string){
+  const response = await apiFetch(`/api/rooms/${roomId}/members`);
+  const data = (await response.json()) as any;
+
+  if(!response.ok){
+    throw new Error(data.error ?? "Failed to get memebers list");
+  }
+
+  return data.members;
 }
 
 // message api

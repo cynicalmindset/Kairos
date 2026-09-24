@@ -22,6 +22,7 @@ import {
   rejecttshare,
   uploadshare,
   downloadshare,
+  roommembers,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -31,6 +32,7 @@ import { settoken } from "./api.ts";
 type Mode = "chat" | "register" | "login";
 
 function App() {
+  const [member, setmember] = useState<any[]>([]);
   const [activeroom, setactiveroom] = useState<any | null>(null);
   const [selectedroom, setselectedroom] = useState(0);
   const [midtext, setmidtext] = useState("");
@@ -75,6 +77,10 @@ function App() {
         const data = await getmessage(room.id);
         setactiveroom(room);
         setmessages(data);
+
+        // const roomMem = await roommembers(room.id);
+        // setmember(roomMem);
+
         setlistroom(false);
         setempyt(false);
         setmidtext(`# ${room.name}\n`);
@@ -125,7 +131,9 @@ function App() {
         setrooms(data);
       })
       .catch((error) => {
-        error instanceof Error ? error.message : "something went wrong";
+        seterror(
+          error instanceof Error ? error.message : "something went wrong",
+        );
       });
   }, [logged, mode]);
 
@@ -191,6 +199,24 @@ function App() {
         );
         console.log(error);
       }
+      return;
+    }
+
+    if (message.trim() === "/members") {
+      if (!activeroom) {
+        seterror("join a room first");
+        setmessage("");
+        return;
+      }
+      try {
+        const mem = await roommembers(activeroom.id);
+        setmember(mem);
+      } catch (error) {
+        seterror(
+          error instanceof Error ? error.message : "Failed to get room members",
+        );
+      }
+      setmessage("");
       return;
     }
 
@@ -562,6 +588,12 @@ function App() {
             </Text>
           </Box>
         )}
+
+        {member.map((member) => (
+          <Text key={member.id}>
+            {member.name} ({member.email})
+          </Text>
+        ))}
 
         {midtext && (
           <Box justifyContent="center" alignItems="center">
