@@ -1,5 +1,3 @@
-import { existsSync, stat, statSync } from "fs";
-import path from "path";
 import MessageList from "../src/components/Messagelist.tsx";
 import { Box, render, Text, useInput, useAnimation } from "ink";
 import Header from "./components/Header.tsx";
