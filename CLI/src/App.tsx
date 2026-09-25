@@ -7,6 +7,17 @@ import RoomList from "./components/Roomlist.tsx";
 import Members from "./components/Members.tsx";
 import Help from "./components/Help.tsx";
 import Input from "./components/Input.tsx";
+import { clearScreen, showHelp } from "./commands/uiCommands.ts";
+import { startLogin, startRegister, logout } from "./commands/authCommands.ts";
+import { shareFile, acceptFile, rejectFile } from "./commands/fileCommands.ts";
+import {
+  leaveRoom,
+  getMembers,
+  joinRoom,
+  listRooms,
+  createRoom,
+  backFromRoom,
+} from "./commands/roomCommands.ts";
 import {
   joinroomies,
   sendSocketMessage,
@@ -22,15 +33,6 @@ import {
   createroom,
   getmessage,
   sendmessage,
-  joinroom,
-  getroombyid,
-  createshare,
-  acceptshare,
-  rejecttshare,
-  uploadshare,
-  downloadshare,
-  roommembers,
-  leaveroom,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -106,8 +108,6 @@ function App() {
     isActive: !serverconnected,
   });
 
-  const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
   useEffect(() => {
     setconncetionhandler((connected) => {
       setserverconnected(connected);
@@ -162,298 +162,121 @@ function App() {
   const handlesubmit = async () => {
     if (!message.trim()) return;
 
+    const uiContext = {
+      setmidtext,
+      setlistroom,
+      setempyt,
+      setshowcommands,
+      setmessages,
+      setmessage,
+    };
+    const authContext = {
+      setmode,
+      setlogged,
+      setmessage,
+      setmessages,
+    };
+    const fileContext = {
+      activeroom,
+      setmessage,
+      seterror,
+    };
+    const roomContext = {
+      activeroom,
+      setactiveroom,
+      setmessages,
+      setmember,
+      setrooms,
+      setlistroom,
+      setshowmember,
+      setempyt,
+      setselectedroom,
+      setmidtext,
+      setmessage,
+      seterror,
+      setIsCreatingRoom,
+      setshowcommands,
+    };
+
+    //FILE HANDELING
+
     if (message.trim().startsWith("/share")) {
-      if (!activeroom) {
-        seterror("join a room first");
-        console.log("join a room first");
-        return;
-      }
-
       const filepath = message.trim().slice(7).trim();
-
-      if (!filepath) {
-        seterror("file path is required");
-        console.log("file path is required");
-        return;
-      }
-
-      if (!existsSync(filepath)) {
-        seterror("file does not exist");
-        console.log("file does not exist");
-        return;
-      }
-
-      try {
-        const stats = statSync(filepath);
-        if (!stats.isFile()) {
-          seterror("path is not a file");
-          console.log("path is not a file");
-          return;
-        }
-
-        const filename = path.basename(filepath);
-        const fileshare = await createshare(
-          activeroom.id,
-          filename,
-          filepath,
-          stats.size,
-        );
-
-        await uploadshare(activeroom.id, fileshare.id, filepath);
-
-        sendFileShare(
-          activeroom.id,
-          fileshare.id,
-          fileshare.fileName,
-          fileshare.fileSize,
-          fileshare.sender,
-        );
-
-        if (fileshare) {
-          console.log("file shared");
-        }
-
-        setmessage("");
-        seterror("");
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "Failed to share file",
-        );
-        console.log(error);
-      }
-      return;
-    }
-
-    if (message.trim() === "/leave") {
-      if (!activeroom) {
-        seterror("You are not in a room");
-        setmessage("");
-        return;
-      }
-
-      try {
-        await leaveroom(activeroom.id);
-
-        setactiveroom(null);
-        setmessages([]);
-        setmember([]);
-        setmidtext("");
-        setempyt(true);
-
-        // Refresh room list
-        const updatedRooms = await getroom();
-        setrooms(updatedRooms);
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "Failed to leave room",
-        );
-      }
-
-      setmessage("");
-      return;
-    }
-
-    if (message.trim() === "/members") {
-      if (!activeroom) {
-        seterror("join a room first");
-        setmessage("");
-        return;
-      }
-      try {
-        const mem = await roommembers(activeroom.id);
-        setmember(mem);
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "Failed to get room members",
-        );
-      }
-      setshowmember(true);
-      setmessage("");
+      await shareFile(filepath, fileContext);
       return;
     }
 
     if (message.trim().startsWith("/accept ")) {
-      console.log("ACCEPT COMMAND STARTED");
-
-      if (!activeroom) {
-        seterror("Join a room first");
-        return;
-      }
-
       const shareId = message.trim().slice(8).trim();
-
-      console.log("SHARE ID:", shareId);
-
-      if (!shareId) {
-        seterror("Share ID is required");
-        return;
-      }
-
-      try {
-        console.log("ACCEPTING...");
-
-        await acceptshare(activeroom.id, shareId);
-
-        console.log("ACCEPTED. DOWNLOADING...");
-
-        const response = await downloadshare(activeroom.id, shareId);
-
-        console.log("DOWNLOAD RESPONSE:", response.status);
-
-        const buffer = await response.arrayBuffer();
-
-        const filename =
-          response.headers
-            .get("content-disposition")
-            ?.match(/filename="(.+)"/)?.[1] ?? "shared-file";
-
-        console.log("WRITING FILE:", filename);
-
-        await Bun.write(filename, buffer);
-
-        console.log(`File downloaded: ${filename}`);
-
-        setmessage("");
-        seterror("");
-      } catch (error) {
-        console.log("ACCEPT ERROR:", error);
-
-        seterror(
-          error instanceof Error ? error.message : "Failed to accept file",
-        );
-      }
-
+      await acceptFile(shareId, fileContext);
       return;
     }
 
     if (message.trim().startsWith("/reject ")) {
-      if (!activeroom) {
-        seterror("Join a room first");
-        return;
-      }
-
       const shareId = message.trim().slice(8).trim();
-
-      if (!shareId) {
-        seterror("Share ID is required");
-        return;
-      }
-
-      try {
-        await rejecttshare(activeroom.id, shareId);
-
-        setmessage("");
-        seterror("");
-      } catch (error) {
-        seterror(
-          error instanceof Error
-            ? error.message
-            : "Failed to reject file share",
-        );
-      }
-
+      await rejectFile(shareId, fileContext);
       return;
     }
 
+    // ROOMS
+
     if (message.trim().startsWith("/join ")) {
       const roomId = message.trim().slice(6).trim();
+      await joinRoom(roomId, roomContext);
+      return;
+    }
 
-      if (!roomId) {
-        seterror("Room ID is required");
-        return;
-      }
+    if (message.trim() === "/leave") {
+      await leaveRoom(roomContext);
+      return;
+    }
 
-      try {
-        await joinroom(roomId);
-
-        const room = await getroombyid(roomId);
-
-        joinroomies(roomId);
-
-        const data = await getmessage(roomId);
-
-        setactiveroom(room);
-        setmessages(data);
-        setlistroom(false);
-        setempyt(false);
-        setmidtext(`# ${room.name}`);
-        setmessage("");
-        seterror("");
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "Failed to join room",
-        );
-      }
-
+    if (message.trim() === "/members") {
+      await getMembers(roomContext);
       return;
     }
 
     if (message.trim() === "/create") {
-      setIsCreatingRoom(true);
-      setmessage("");
-      setmessages([]);
+      createRoom(roomContext);
       return;
     }
 
     if (message.trim() === "/back") {
-      setactiveroom(null);
-      setmessages([]);
-      setmidtext("");
-      setmessage("");
+      backFromRoom(roomContext);
       return;
     }
+
     if (message.trim() === "/rooms") {
-      try {
-        const data = await getroom();
-
-        setrooms(data);
-        setselectedroom(0);
-        setlistroom(true);
-        setempyt(false);
-        setshowcommands(false);
-        setmessage("");
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "Failed to fetch rooms",
-        );
-      }
-
+      await listRooms(roomContext);
       return;
     }
+
+    // AUTH
+
     if (message.trim() === "/logout") {
-      clearAuth();
-      setlogged(false);
-      setmode("chat");
-      setmessage("");
-      setmessages([]);
+      logout(authContext);
       return;
     }
     if (message.trim() === "/register") {
-      setmode("register");
-      setmessage("");
+      startRegister(authContext);
       return;
     }
     if (message.trim() === "/login") {
-      setmode("login");
-      setmessage("");
+      startLogin(authContext);
       return;
     }
+
+    //MISSLENIOUS
+
     if (message.trim() === "/clear") {
-      setmidtext("");
-      setlistroom(false);
-      setempyt(true);
-      setshowcommands(false);
-      setmessages([]);
-      setmessage("");
+      clearScreen(uiContext);
       return;
     }
+
     if (message.trim() === "/help") {
-      setempyt(false);
-      setshowcommands(true);
-      setmessage("");
+      showHelp(uiContext);
       return;
     }
-    // setmessages((prev) => [...prev, message]);
 
     if (activeroom) {
       const content = message.trim();
@@ -612,11 +435,7 @@ function App() {
 
   return (
     <Box flexDirection="column">
-      <Header
-  logged={logged}
-  serverconnected={serverconnected}
-  frame={frame}
-/>
+      <Header logged={logged} serverconnected={serverconnected} frame={frame} />
 
       <Box borderStyle="single" height={30} flexDirection="column" paddingX={1}>
         {empty && (
@@ -638,7 +457,7 @@ function App() {
             <Text color="gray">{midtext}</Text>
           </Box>
         )}
-        {showmember &&  <Members members={member} />}
+        {showmember && <Members members={member} />}
         {listroom && (
           <Box
             flexDirection="column"
@@ -649,10 +468,7 @@ function App() {
               <Text bold>Rooms</Text>
             </Box>
 
-            <RoomList
-              rooms={rooms}
-              selectedroom={selectedroom}
-            />
+            <RoomList rooms={rooms} selectedroom={selectedroom} />
           </Box>
         )}
 
@@ -690,10 +506,10 @@ function App() {
           ></TextInput>
         ) : (
           <Input
-  value={message}
-  onChange={setmessage}
-  onSubmit={handlesubmit}
-/>
+            value={message}
+            onChange={setmessage}
+            onSubmit={handlesubmit}
+          />
         )}
       </Box>
     </Box>
