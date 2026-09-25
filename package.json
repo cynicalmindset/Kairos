@@ -27,6 +27,7 @@
     "better-auth": "^1.7.4",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "figlet": "^1.11.4",
     "ink": "^7.1.1",
     "ink-text-input": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
