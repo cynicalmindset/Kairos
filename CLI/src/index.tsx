@@ -1,11 +1,12 @@
 import { existsSync, stat, statSync } from "fs";
 import path from "path";
-import { Box, render, Text, useInput } from "ink";
+import { Box, render, Text, useInput, useAnimation } from "ink";
 import {
   joinroomies,
   sendSocketMessage,
   setMessageHandler,
   sendFileShare,
+  setconncetionhandler,
 } from "../../src/socket.ts";
 // import "../../src/socket/index.ts"
 import {
@@ -33,6 +34,7 @@ import { settoken } from "./api.ts";
 type Mode = "chat" | "register" | "login";
 
 function App() {
+  const [serverconnected, setserverconnected] = useState(false);
   const [member, setmember] = useState<any[]>([]);
   const [activeroom, setactiveroom] = useState<any | null>(null);
   const [selectedroom, setselectedroom] = useState(0);
@@ -92,6 +94,19 @@ function App() {
       }
     }
   });
+
+  const { frame } = useAnimation({
+    interval: 80,
+    isActive: !serverconnected,
+  });
+
+  const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+  useEffect(() => {
+    setconncetionhandler((connected) => {
+      setserverconnected(connected);
+    });
+  }, []);
 
   useEffect(() => {
     setMessageHandler((newMessage) => {
@@ -601,7 +616,18 @@ function App() {
           Kairos - v1
         </Text>
         {error && <Text color="red">{error}</Text>}
-        {logged && <Text color="green">$ account connected</Text>}
+        {logged && (
+          <>
+            {serverconnected ? (
+              <Text color="green">✓ Server is live</Text>
+            ) : (
+              <Text color="yellow">
+                {spinnerFrames[frame % spinnerFrames.length]} Connecting to
+                server...
+              </Text>
+            )}
+          </>
+        )}
       </Box>
 
       <Box borderStyle="single" height={30} flexDirection="column" paddingX={1}>
@@ -629,8 +655,9 @@ function App() {
           <Box justifyContent="center" alignItems="center">
             <Text color="gray" key={member.id}>
               {member.name} ({member.email})
+              <Box></Box>
             </Text>
-          </Box>
+          </Box>         
         ))}
 
         {listroom && (

@@ -76,4 +76,22 @@ export function sendFileShare(
   );
 }
 
+let oncooneectionchange: ((connected: boolean)=> void) | null = null;
+
+export function setconncetionhandler(handler:(connected:boolean)=>void){
+  oncooneectionchange = handler;
+}
+
+ws.onopen = () => {
+  oncooneectionchange?.(true)
+}
+
+ws.onclose = () => {
+  oncooneectionchange?.(false)
+}
+
+ws.onerror = () => {
+  oncooneectionchange?.(false)
+}
+
 export default ws;
