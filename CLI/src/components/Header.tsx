@@ -6,17 +6,20 @@ type HeaderProps = {
   logged: boolean;
   serverconnected: boolean;
   frame: number;
+  error?: string;
+  info?: string;
 };
 
 const logo = figlet.textSync("KAIROS", {
-//   font: "ANSI Shadow",
-font: "Small Keyboard",
+  font: "Small Keyboard",
 });
 
 export default function Header({
   logged,
   serverconnected,
   frame,
+  error,
+  info,
 }: HeaderProps) {
   return (
     <Box flexDirection="column" alignItems="center" borderStyle="single">
@@ -29,6 +32,15 @@ export default function Header({
           frame={frame}
         />
       </Box>
+      {error ? (
+        <Box marginTop={1}>
+          <Text color="red">{error}</Text>
+        </Box>
+      ) : info ? (
+        <Box marginTop={1}>
+          <Text>{info}</Text>
+        </Box>
+      ) : null}
     </Box>
   );
 }

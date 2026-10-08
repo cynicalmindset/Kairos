@@ -14,6 +14,8 @@ export default function Help() {
       <Text>/clear       Clear screen</Text>
       <Text>/help        Show this help</Text>
       <Text>/logout      Logout</Text>
+      <Text>/home        Return to home screen</Text>
+      <Text>/profile     View user profile & stats</Text>
     </Box>
   );
 }

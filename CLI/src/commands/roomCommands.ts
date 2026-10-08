@@ -23,6 +23,17 @@ export type RoomCommandContext = {
   setinfo: (value: string) => void;
 };
 
+//go back 
+export function goHome(ctx: RoomCommandContext) {
+  ctx.setactiveroom(null);
+  ctx.setmessages([]);
+  ctx.setmidtext("");
+  ctx.setView("welcome");
+  ctx.seterror("");
+  ctx.setinfo("Returned to Home screen");
+  ctx.setmessage("");
+}
+
 // Leave room
 export async function leaveRoom(ctx: RoomCommandContext) {
   if (!ctx.activeroom) {

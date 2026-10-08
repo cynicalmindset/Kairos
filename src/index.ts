@@ -4,6 +4,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth";
 import roomsRouter from './routes/rooms.ts';
 import messagesRouter from "./routes/message.ts";
+import profileRouter from "./routes/profile.ts";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
@@ -16,6 +17,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json());
 app.use("/api/rooms", roomsRouter);
 app.use("/api/rooms/:roomId/messages", messagesRouter);
+app.use("/api/profile", profileRouter);
 
 app.get("/health", (_req, res) => {
   res.json({

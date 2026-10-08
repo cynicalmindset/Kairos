@@ -306,3 +306,25 @@ export async function downloadshare(
 
   return response;
 }
+
+export async function getprofile() {
+  const response = await apiFetch("/api/profile");
+  const text = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      response.status === 404
+        ? "Profile endpoint not found (make sure server is running on port 3000)"
+        : `Server returned error (${response.status}): ${text.slice(0, 100)}`
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error ?? "Failed to fetch profile");
+  }
+
+  return data;
+}

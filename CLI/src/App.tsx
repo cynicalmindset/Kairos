@@ -4,6 +4,7 @@ import Header from "./components/Header.tsx";
 import RoomList from "./components/Roomlist.tsx";
 import Members from "./components/Members.tsx";
 import Help from "./components/Help.tsx";
+import Profile from "./components/Profile.tsx";
 import Input from "./components/Input.tsx";
 import { clearScreen, showHelp, type UICommandContext } from "./commands/uiCommands.ts";
 import { startLogin, startRegister, logout, type AuthCommandContext } from "./commands/authCommands.ts";
@@ -15,6 +16,7 @@ import {
   listRooms,
   createRoomAction,
   backFromRoom,
+  goHome,
   type RoomCommandContext,
 } from "./commands/roomCommands.ts";
 import {
@@ -30,6 +32,7 @@ import {
   getmessage,
   sendmessage,
   createroom,
+  getprofile,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
@@ -37,7 +40,7 @@ import { getSavedToken } from "./auth.ts";
 import { settoken } from "./api.ts";
 
 type Mode = "chat" | "register" | "login";
-type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room";
+type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room" | "profile";
 
 function App() {
   const [mode, setmode] = useState<Mode>("chat");
@@ -50,6 +53,7 @@ function App() {
   const [rooms, setrooms] = useState<any[]>([]);
   const [selectedroom, setselectedroom] = useState(0);
   const [member, setmember] = useState<any[]>([]);
+  const [profileData, setProfileData] = useState<any | null>(null);
 
   const [message, setmessage] = useState("");
   const [messages, setmessages] = useState<any[]>([]);
@@ -69,7 +73,7 @@ function App() {
   // Keyboard navigation for room selector and overlay escape
   useInput(async (_input, key) => {
     if (key.escape) {
-      if (view === "rooms" || view === "members" || view === "help" || view === "create_room") {
+      if (view === "rooms" || view === "members" || view === "help" || view === "create_room" || view === "profile") {
         if (activeroom) {
           setView("chat");
           setmidtext(`# ${activeroom.name}`);
@@ -228,6 +232,31 @@ function App() {
       showHelp(uiContext);
       return;
     }
+
+    if (raw === "/home") {
+      goHome(roomContext);
+      return;
+    }
+
+    if (raw === "/profile") {
+      if (!logged) {
+        seterror("Please /login first to view your profile");
+        setmessage("");
+        return;
+      }
+      try {
+        const data = await getprofile();
+        setProfileData(data);
+        setView("profile");
+        seterror("");
+        setinfo("Viewing profile");
+      } catch (err) {
+        seterror(err instanceof Error ? err.message : "Failed to load profile");
+      }
+      setmessage("");
+      return;
+    }
+
 
     // 2. Auth Commands
     if (raw === "/login") {
@@ -438,7 +467,13 @@ function App() {
 
   return (
     <Box flexDirection="column">
-      <Header logged={logged} serverconnected={serverconnected} frame={frame} />
+      <Header
+        logged={logged}
+        serverconnected={serverconnected}
+        frame={frame}
+        error={error}
+        info={info}
+      />
 
       <Box borderStyle="single" height={22} flexDirection="column" paddingX={1}>
         {view === "welcome" && (
@@ -448,7 +483,7 @@ function App() {
             justifyContent="center"
             marginY={2}
           >
-            <Text color="cyan" bold>Welcome to Kairos Terminal Chat 🚀</Text>
+            {/* <Text color="cyan" bold>Welcome to Kairos Terminal Chat</Text> */}
             <Text color="gray">{"\nCode together without ever leaving your IDE"}</Text>
             <Text color="gray">{"\nType /help for available commands or /rooms to join a room"}</Text>
           </Box>
@@ -475,6 +510,10 @@ function App() {
           </Box>
         )}
 
+        {view === "profile" && (
+          <Profile user={profileData?.user} stats={profileData?.stats} />
+        )}
+
         {view === "create_room" && (
           <Box flexDirection="column" marginY={1}>
             <Text bold color="green">Create a New Room</Text>
@@ -493,17 +532,6 @@ function App() {
           </Box>
         )}
       </Box>
-
-      {/* Feedback Banner */}
-      {error ? (
-        <Box paddingX={1}>
-          <Text color="red">⚠️ {error}</Text>
-        </Box>
-      ) : info ? (
-        <Box paddingX={1}>
-          <Text color="cyan">ℹ️ {info}</Text>
-        </Box>
-      ) : null}
 
       {/* Input Prompt */}
       <Box borderStyle="single">

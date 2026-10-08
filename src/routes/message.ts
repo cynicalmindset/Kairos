@@ -4,7 +4,7 @@ import { getCachedSession, isMemberCached } from "../lib/auth-cache";
 
 const router = Router({ mergeParams: true });
 
-// Message GET - retrieve recent messages for room
+
 router.get("/", async (req, res) => {
   const session = await getCachedSession(req.headers);
   if (!session?.user) {

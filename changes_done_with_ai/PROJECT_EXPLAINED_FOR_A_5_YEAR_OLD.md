@@ -232,8 +232,9 @@ Here is what happens from the millisecond you press **Enter**:
 | `/share <filePath>` | Send a file or picture to everyone in the room |
 | `/accept <shareId>` | Download a shared file to your computer |
 | `/reject <shareId>` | Decline a shared file |
-| `/leave` | Walk out of the current room |
-| `/back` | Go back from help/rooms/members menus |
+| `/home` | Return to the home screen without leaving your room |
+| `/profile` | View your secret club badge & activity statistics |
+| `/back` | Go back from help/rooms/members/profile menus |
 | `/help` | Ask for the instruction guide |
 | `/clear` | Wipe the blackboard clean |
 

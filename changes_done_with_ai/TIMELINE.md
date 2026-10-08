@@ -54,6 +54,9 @@ The AI came in as a helper mechanic to make everything lightning fast without ch
 | **6. Benchmark Testing & Verification** | `scratch/test-flow.ts` | Created a speedometer test. Verified message sending dropped from **1+ second down to ~200ms**, and room fetching dropped to **~100ms**! |
 | **7. Fixed Live Status Light** | `src/socket.ts`, `CLI/src/components/status.tsx` | Fixed the walkie-talkie signal checker so when you turn on your game screen, it immediately sees the radio tower is connected and turns on the green `✓ Server is live` light! |
 | **8. Unified Command State Management** | `CLI/src/App.tsx`, `CLI/src/commands/*` | Fixed conflicting screen modes (`/clear`, `/rooms`, `/help`, `/members`, `/create`). Replaced buggy boolean flags with a clean `ViewMode` state machine, added keyboard navigation with Escape support, and added instant red/cyan feedback banners for errors and notifications! |
+| **9. Clean Top Header Status & Notifications** | `CLI/src/components/Header.tsx`, `CLI/src/App.tsx` | Moved error alerts and info tickers directly inside the Header box right below the status line for a neat, centralized dashboard view! |
+| **10. User Profile & Player Card System** | `src/routes/profile.ts`, `CLI/src/components/Profile.tsx`, `CLI/src/api.ts` | Built `/profile` command showing user badge, member since date, rooms joined, rooms owned, total messages sent, and files shared! |
+| **11. Quick Dashboard Navigation** | `CLI/src/commands/roomCommands.ts`, `CLI/src/App.tsx` | Added `/home` command to quickly step out to the main menu without leaving your room membership. |
 
 ---
 
