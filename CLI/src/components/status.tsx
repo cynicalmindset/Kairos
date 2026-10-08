@@ -22,18 +22,17 @@ const spinnerFrames = [
 export default function Status({
   logged,
   connected,
-  frame,
+  frame = 0,
 }: StatusProps) {
-  if (!logged) return null;
+  const currentFrame = spinnerFrames[Math.abs(frame || 0) % spinnerFrames.length];
 
   return connected ? (
     <Text color="green">
-      ✓ Server is live
+      ✓ Server is live {logged ? "" : "(Not logged in)"}
     </Text>
   ) : (
     <Text color="yellow">
-      {spinnerFrames[frame % spinnerFrames.length]}
-      {" "}Connecting to server...
+      {currentFrame} Connecting to server...
     </Text>
   );
-}
+}

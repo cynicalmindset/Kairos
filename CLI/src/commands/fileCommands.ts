@@ -1,4 +1,3 @@
-
 import { existsSync, statSync } from "fs";
 import path from "path";
 
@@ -12,11 +11,11 @@ import {
 
 import { sendFileShare } from "../../../src/socket.ts";
 
-type FileCommandContext = {
+export type FileCommandContext = {
   activeroom: any;
-
   setmessage: (value: string) => void;
   seterror: (value: string) => void;
+  setinfo: (value: string) => void;
 };
 
 export async function shareFile(
@@ -24,17 +23,20 @@ export async function shareFile(
   ctx: FileCommandContext,
 ) {
   if (!ctx.activeroom) {
-    ctx.seterror("join a room first");
+    ctx.seterror("Join a room first before sharing a file");
+    ctx.setmessage("");
     return;
   }
 
   if (!filepath) {
-    ctx.seterror("file path is required");
+    ctx.seterror("File path is required. Usage: /share <path/to/file>");
+    ctx.setmessage("");
     return;
   }
 
   if (!existsSync(filepath)) {
-    ctx.seterror("file does not exist");
+    ctx.seterror(`File does not exist: ${filepath}`);
+    ctx.setmessage("");
     return;
   }
 
@@ -42,7 +44,8 @@ export async function shareFile(
     const stats = statSync(filepath);
 
     if (!stats.isFile()) {
-      ctx.seterror("path is not a file");
+      ctx.seterror("Path is a directory, not a file");
+      ctx.setmessage("");
       return;
     }
 
@@ -69,29 +72,30 @@ export async function shareFile(
       fileshare.sender,
     );
 
-    ctx.setmessage("");
     ctx.seterror("");
+    ctx.setinfo(`Shared file "${filename}" with room #${ctx.activeroom.name}`);
+    ctx.setmessage("");
   } catch (error) {
     ctx.seterror(
-      error instanceof Error
-        ? error.message
-        : "Failed to share file",
+      error instanceof Error ? error.message : "Failed to share file",
     );
+    ctx.setmessage("");
   }
 }
-
 
 export async function acceptFile(
   shareId: string,
   ctx: FileCommandContext,
 ) {
   if (!ctx.activeroom) {
-    ctx.seterror("Join a room first");
+    ctx.seterror("Join a room first before accepting a file");
+    ctx.setmessage("");
     return;
   }
 
   if (!shareId) {
-    ctx.seterror("Share ID is required");
+    ctx.seterror("Share ID is required. Usage: /accept <shareId>");
+    ctx.setmessage("");
     return;
   }
 
@@ -108,21 +112,18 @@ export async function acceptFile(
     const filename =
       response.headers
         .get("content-disposition")
-        ?.match(/filename="(.+)"/)?.[1] ??
-      "shared-file";
+        ?.match(/filename="(.+)"/)?.[1] ?? `download-${shareId}`;
 
     await Bun.write(filename, buffer);
 
-    console.log(`File downloaded: ${filename}`);
-
-    ctx.setmessage("");
     ctx.seterror("");
+    ctx.setinfo(`Downloaded file "${filename}" to current directory`);
+    ctx.setmessage("");
   } catch (error) {
     ctx.seterror(
-      error instanceof Error
-        ? error.message
-        : "Failed to accept file",
+      error instanceof Error ? error.message : "Failed to accept file",
     );
+    ctx.setmessage("");
   }
 }
 
@@ -132,11 +133,13 @@ export async function rejectFile(
 ) {
   if (!ctx.activeroom) {
     ctx.seterror("Join a room first");
+    ctx.setmessage("");
     return;
   }
 
   if (!shareId) {
-    ctx.seterror("Share ID is required");
+    ctx.seterror("Share ID is required. Usage: /reject <shareId>");
+    ctx.setmessage("");
     return;
   }
 
@@ -146,13 +149,13 @@ export async function rejectFile(
       shareId,
     );
 
-    ctx.setmessage("");
     ctx.seterror("");
+    ctx.setinfo(`Rejected file share ${shareId}`);
+    ctx.setmessage("");
   } catch (error) {
     ctx.seterror(
-      error instanceof Error
-        ? error.message
-        : "Failed to reject file share",
+      error instanceof Error ? error.message : "Failed to reject file share",
     );
+    ctx.setmessage("");
   }
 }

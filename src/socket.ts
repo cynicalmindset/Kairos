@@ -2,35 +2,23 @@ const WS_URL = process.env.KAIROS_WS_URL || "ws://localhost:3000/ws";
 console.log("WS URL:", WS_URL);
 const ws = new WebSocket(WS_URL);
 
-ws.onopen = () => {
-  console.log("Connected to WebSocket");  
-};
-
 let onmessage: ((message: any) => void) | null = null;
 
 ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-
-  if (data.type === "new_message" || data.type === "file_share") {
-    onmessage?.(data);
+  try {
+    const data = JSON.parse(event.data);
+    if (data.type === "new_message" || data.type === "file_share") {
+      onmessage?.(data);
+    }
+  } catch (err) {
+    console.error("Failed to parse websocket message:", err);
   }
 };
 
-export function setMessageHandler(
-  handler: (message: any) => void,
-) {
+export function setMessageHandler(handler: (message: any) => void) {
   onmessage = handler;
 }
 
-ws.onclose = (event) => {
-  console.log("WebSocket CLOSED");
-  console.log("code:", event.code);
-  console.log("reason:", event.reason);
-};
-
-ws.onerror = (error) => {
-  console.log("WebSocket error:", error);
-};
 
 
 export function joinroomies(roomId: string) {
@@ -76,22 +64,31 @@ export function sendFileShare(
   );
 }
 
-let oncooneectionchange: ((connected: boolean)=> void) | null = null;
+let oncooneectionchange: ((connected: boolean) => void) | null = null;
 
-export function setconncetionhandler(handler:(connected:boolean)=>void){
+export function setconncetionhandler(handler: (connected: boolean) => void) {
   oncooneectionchange = handler;
+  // If socket is already open or closed when handler registers, notify immediately!
+  if (ws.readyState === 1) {
+    handler(true);
+  } else if (ws.readyState === 2 || ws.readyState === 3) {
+    handler(false);
+  }
 }
 
 ws.onopen = () => {
-  oncooneectionchange?.(true)
-}
+  console.log("Connected to WebSocket");
+  oncooneectionchange?.(true);
+};
 
-ws.onclose = () => {
-  oncooneectionchange?.(false)
-}
+ws.onclose = (event) => {
+  console.log("WebSocket CLOSED, code:", event.code, "reason:", event.reason);
+  oncooneectionchange?.(false);
+};
 
-ws.onerror = () => {
-  oncooneectionchange?.(false)
-}
+ws.onerror = (error) => {
+  console.log("WebSocket error:", error);
+  oncooneectionchange?.(false);
+};
 
 export default ws;

@@ -1,23 +1,31 @@
-type UICommandContext = {
+export type UICommandContext = {
+  setView: (view: "welcome" | "rooms" | "members" | "help" | "chat" | "create_room") => void;
   setmidtext: (value: string) => void;
-  setlistroom: (value: boolean) => void;
-  setempyt: (value: boolean) => void;
-  setshowcommands: (value: boolean) => void;
-  setmessages: (messages: any[]) => void;
+  setmessages: React.Dispatch<React.SetStateAction<any[]>>;
   setmessage: (value: string) => void;
+  seterror: (value: string) => void;
+  setinfo: (value: string) => void;
+  activeroom: any;
 };
 
 export function clearScreen(ctx: UICommandContext) {
-  ctx.setmidtext("");
-  ctx.setlistroom(false);
-  ctx.setempyt(true);
-  ctx.setshowcommands(false);
-  ctx.setmessages([]);
+  ctx.seterror("");
+  ctx.setinfo("");
   ctx.setmessage("");
+
+  if (ctx.activeroom) {
+    ctx.setmessages([]);
+    ctx.setView("chat");
+    ctx.setmidtext(`# ${ctx.activeroom.name}`);
+  } else {
+    ctx.setmidtext("");
+    ctx.setView("welcome");
+  }
 }
 
 export function showHelp(ctx: UICommandContext) {
-  ctx.setempyt(false);
-  ctx.setshowcommands(true);
+  ctx.seterror("");
+  ctx.setinfo("Type /back to exit help menu");
+  ctx.setView("help");
   ctx.setmessage("");
 }

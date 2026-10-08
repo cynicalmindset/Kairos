@@ -1,13 +1,12 @@
 import { Router } from "express";
-import { auth } from "../auth";
 import { prisma } from "../lib/prisma";
+import { getCachedSession, isMemberCached } from "../lib/auth-cache";
+
 const router = Router({ mergeParams: true });
 
-//message get
+// Message GET - retrieve recent messages for room
 router.get("/", async (req, res) => {
-  const session = await auth.api.getSession({
-    headers: req.headers,
-  });
+  const session = await getCachedSession(req.headers);
   if (!session?.user) {
     return res.status(401).json({
       error: "not logged in",
@@ -16,23 +15,19 @@ router.get("/", async (req, res) => {
 
   const { roomId } = req.params as { roomId: string };
 
-  const memebership = await prisma.roomMember.findUnique({
-    where: {
-      userId_roomId: {
-        userId: session.user.id,
-        roomId,
-      },
-    },
-  });
-
-  if (!memebership) {
+  const isMember = await isMemberCached(session.user.id, roomId);
+  if (!isMember) {
     return res.status(403).json({
       error: "You are not a member of this room",
     });
   }
 
+  const limit = Math.min(Number(req.query.limit) || 100, 200);
+
   const messages = await prisma.message.findMany({
     where: { roomId },
+    take: limit,
+    orderBy: { createdAt: "asc" },
     include: {
       user: {
         select: {
@@ -41,7 +36,6 @@ router.get("/", async (req, res) => {
         },
       },
     },
-    orderBy: { createdAt: "asc" },
   });
 
   return res.json({
@@ -49,11 +43,9 @@ router.get("/", async (req, res) => {
   });
 });
 
-//messsage post
+// Message POST - create new message
 router.post("/", async (req, res) => {
-  const session = await auth.api.getSession({
-    headers: req.headers,
-  });
+  const session = await getCachedSession(req.headers);
   if (!session?.user) {
     return res.status(401).json({
       error: "Not logged in",
@@ -69,36 +61,28 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const memebership = await prisma.roomMember.findUnique({
-    where: {
-      userId_roomId: {
-        userId: session.user.id,
-        roomId,
-      },
-    },
-  });
-
-  if (!memebership) {
+  const isMember = await isMemberCached(session.user.id, roomId);
+  if (!isMember) {
     return res.status(403).json({
       error: "not memeber of this room",
     });
   }
 
   const message = await prisma.message.create({
-  data: {
-    content,
-    userId: session.user.id,
-    roomId,
-  },
-  include: {
-    user: {
-      select: {
-        id: true,
-        name: true,
+    data: {
+      content,
+      userId: session.user.id,
+      roomId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+        },
       },
     },
-  },
-});
+  });
 
   return res.json({
     message,
@@ -106,3 +90,4 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
+

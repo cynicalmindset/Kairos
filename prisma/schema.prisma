@@ -44,6 +44,8 @@ model Session {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {
@@ -115,6 +117,8 @@ model RoomMember {
   joinedAt DateTime @default(now())
 
   @@unique([userId, roomId])
+  @@index([roomId])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────
@@ -132,6 +136,9 @@ model Message {
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────
@@ -151,6 +158,9 @@ model File {
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([roomId])
+  @@index([userId])
 }
 
 model FileShare {
@@ -169,4 +179,7 @@ model FileShare {
   status String @default("pending")
 
   createdAt DateTime @default(now())
+
+  @@index([roomId, status])
+  @@index([senderId])
 }

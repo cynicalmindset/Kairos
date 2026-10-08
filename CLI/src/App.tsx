@@ -1,102 +1,116 @@
 import MessageList from "../src/components/Messagelist.tsx";
-import { Box, render, Text, useInput, useAnimation } from "ink";
+import { Box, Text, useInput, useAnimation } from "ink";
 import Header from "./components/Header.tsx";
 import RoomList from "./components/Roomlist.tsx";
 import Members from "./components/Members.tsx";
 import Help from "./components/Help.tsx";
 import Input from "./components/Input.tsx";
-import { clearScreen, showHelp } from "./commands/uiCommands.ts";
-import { startLogin, startRegister, logout } from "./commands/authCommands.ts";
-import { shareFile, acceptFile, rejectFile } from "./commands/fileCommands.ts";
+import { clearScreen, showHelp, type UICommandContext } from "./commands/uiCommands.ts";
+import { startLogin, startRegister, logout, type AuthCommandContext } from "./commands/authCommands.ts";
+import { shareFile, acceptFile, rejectFile, type FileCommandContext } from "./commands/fileCommands.ts";
 import {
   leaveRoom,
   getMembers,
   joinRoom,
   listRooms,
-  createRoom,
+  createRoomAction,
   backFromRoom,
+  type RoomCommandContext,
 } from "./commands/roomCommands.ts";
 import {
   joinroomies,
   sendSocketMessage,
   setMessageHandler,
-  sendFileShare,
   setconncetionhandler,
 } from "../../src/socket.ts";
-// import "../../src/socket/index.ts"
 import {
   register,
   login,
   getroom,
-  createroom,
   getmessage,
   sendmessage,
+  createroom,
 } from "./api.ts";
 import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
-import { clearAuth, getSavedToken } from "./auth.ts";
+import { getSavedToken } from "./auth.ts";
 import { settoken } from "./api.ts";
 
 type Mode = "chat" | "register" | "login";
+type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room";
 
 function App() {
-  const [showmember, setshowmember] = useState(false);
-  const [serverconnected, setserverconnected] = useState(false);
-  const [member, setmember] = useState<any[]>([]);
-  const [activeroom, setactiveroom] = useState<any | null>(null);
-  const [selectedroom, setselectedroom] = useState(0);
-  const [midtext, setmidtext] = useState("");
-  const [roomname, setroomname] = useState("");
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
-  const [rooms, setrooms] = useState<any[]>([]);
-  const [listroom, setlistroom] = useState(false);
   const [mode, setmode] = useState<Mode>("chat");
+  const [view, setView] = useState<ViewMode>("welcome");
+
+  const [serverconnected, setserverconnected] = useState(false);
+  const [logged, setlogged] = useState(false);
+
+  const [activeroom, setactiveroom] = useState<any | null>(null);
+  const [rooms, setrooms] = useState<any[]>([]);
+  const [selectedroom, setselectedroom] = useState(0);
+  const [member, setmember] = useState<any[]>([]);
+
   const [message, setmessage] = useState("");
   const [messages, setmessages] = useState<any[]>([]);
-  const [showcommads, setshowcommands] = useState(false);
-  const [empty, setempyt] = useState(true);
-  const [logged, setlogged] = useState(false);
+  const [roomname, setroomname] = useState("");
+  const [midtext, setmidtext] = useState("");
+
+  const [error, seterror] = useState("");
+  const [info, setinfo] = useState("");
+
+  // Auth inputs
   const [name, setname] = useState("");
   const [email, setemail] = useState("");
   const [password, setpassword] = useState("");
-  const [error, seterror] = useState("");
-  const [registerstep, setregisterstep] = useState<
-    "name" | "email" | "password"
-  >("name");
+  const [registerstep, setregisterstep] = useState<"name" | "email" | "password">("name");
   const [loginstep, setloginstep] = useState<"email" | "password">("email");
 
+  // Keyboard navigation for room selector and overlay escape
   useInput(async (_input, key) => {
-    if (!listroom || rooms.length === 0) return;
-
-    if (key.upArrow) {
-      setselectedroom((prev) => (prev > 0 ? prev - 1 : rooms.length - 1));
+    if (key.escape) {
+      if (view === "rooms" || view === "members" || view === "help" || view === "create_room") {
+        if (activeroom) {
+          setView("chat");
+          setmidtext(`# ${activeroom.name}`);
+        } else {
+          setView("welcome");
+          setmidtext("");
+        }
+        seterror("");
+        setinfo("");
+        return;
+      }
     }
 
-    if (key.downArrow) {
-      setselectedroom((prev) => (prev < rooms.length - 1 ? prev + 1 : 0));
-    }
+    if (view === "rooms" && rooms.length > 0) {
+      if (key.upArrow) {
+        setselectedroom((prev) => (prev > 0 ? prev - 1 : rooms.length - 1));
+      }
 
-    if (key.return) {
-      const room = rooms[selectedroom];
+      if (key.downArrow) {
+        setselectedroom((prev) => (prev < rooms.length - 1 ? prev + 1 : 0));
+      }
 
-      //   setlistroom(false);
-      //   setmidtext(`Joined ${room.name}`);
-      try {
-        joinroomies(room.id);
-        const data = await getmessage(room.id);
-        setactiveroom(room);
-        setmessages(data);
+      if (key.return) {
+        const room = rooms[selectedroom];
+        if (!room) return;
 
-        // const roomMem = await roommembers(room.id);
-        // setmember(roomMem);
+        try {
+          joinroomies(room.id);
+          const data = await getmessage(room.id);
 
-        setlistroom(false);
-        setempyt(false);
-        setmidtext(`# ${room.name}\n`);
-      } catch (error) {
-        seterror(
-          error instanceof Error ? error.message : "failed to open room",
-        );
+          setactiveroom(room);
+          setmessages(data || []);
+          setView("chat");
+          setmidtext(`# ${room.name}`);
+          seterror("");
+          setinfo(`Entered #${room.name}`);
+        } catch (err) {
+          seterror(
+            err instanceof Error ? err.message : "Failed to open room",
+          );
+        }
       }
     }
   });
@@ -121,12 +135,10 @@ function App() {
 
         if (optimisticIndex !== -1) {
           const updated = [...prev];
-
           updated[optimisticIndex] = {
             ...newMessage,
             optimistic: false,
           };
-
           return updated;
         }
 
@@ -137,7 +149,6 @@ function App() {
 
   useEffect(() => {
     const token = getSavedToken();
-
     if (token) {
       settoken(token);
       setlogged(true);
@@ -148,177 +159,184 @@ function App() {
     if (!logged || mode !== "chat") return;
     getroom()
       .then((data) => {
-        setrooms(data);
+        setrooms(data || []);
       })
-      .catch((error) => {
+      .catch((err) => {
         seterror(
-          error instanceof Error ? error.message : "something went wrong",
+          err instanceof Error ? err.message : "Failed to load rooms",
         );
       });
   }, [logged, mode]);
 
   const handlesubmit = async () => {
-    if (!message.trim()) return;
+    const raw = message.trim();
+    if (!raw) return;
 
-    const uiContext = {
+    // Clear transient errors on new command attempt
+    seterror("");
+    setinfo("");
+
+    const uiContext: UICommandContext = {
+      setView,
       setmidtext,
-      setlistroom,
-      setempyt,
-      setshowcommands,
       setmessages,
       setmessage,
+      seterror,
+      setinfo,
+      activeroom,
     };
-    const authContext = {
+
+    const authContext: AuthCommandContext = {
       setmode,
       setlogged,
-      setmessage,
+      setactiveroom,
+      setView,
       setmessages,
+      setmessage,
+      seterror,
+      setinfo,
     };
-    const fileContext = {
+
+    const fileContext: FileCommandContext = {
       activeroom,
       setmessage,
       seterror,
+      setinfo,
     };
-    const roomContext = {
+
+    const roomContext: RoomCommandContext = {
       activeroom,
       setactiveroom,
       setmessages,
       setmember,
       setrooms,
-      setlistroom,
-      setshowmember,
-      setempyt,
+      setView,
       setselectedroom,
       setmidtext,
       setmessage,
       seterror,
-      setIsCreatingRoom,
-      setshowcommands,
+      setinfo,
     };
 
-    //FILE HANDELING
-
-    if (message.trim().startsWith("/share")) {
-      const filepath = message.trim().slice(7).trim();
-      await shareFile(filepath, fileContext);
-      return;
-    }
-
-    if (message.trim().startsWith("/accept ")) {
-      const shareId = message.trim().slice(8).trim();
-      await acceptFile(shareId, fileContext);
-      return;
-    }
-
-    if (message.trim().startsWith("/reject ")) {
-      const shareId = message.trim().slice(8).trim();
-      await rejectFile(shareId, fileContext);
-      return;
-    }
-
-    // ROOMS
-
-    if (message.trim().startsWith("/join ")) {
-      const roomId = message.trim().slice(6).trim();
-      await joinRoom(roomId, roomContext);
-      return;
-    }
-
-    if (message.trim() === "/leave") {
-      await leaveRoom(roomContext);
-      return;
-    }
-
-    if (message.trim() === "/members") {
-      await getMembers(roomContext);
-      return;
-    }
-
-    if (message.trim() === "/create") {
-      createRoom(roomContext);
-      return;
-    }
-
-    if (message.trim() === "/back") {
-      backFromRoom(roomContext);
-      return;
-    }
-
-    if (message.trim() === "/rooms") {
-      await listRooms(roomContext);
-      return;
-    }
-
-    // AUTH
-
-    if (message.trim() === "/logout") {
-      logout(authContext);
-      return;
-    }
-    if (message.trim() === "/register") {
-      startRegister(authContext);
-      return;
-    }
-    if (message.trim() === "/login") {
-      startLogin(authContext);
-      return;
-    }
-
-    //MISSLENIOUS
-
-    if (message.trim() === "/clear") {
+    // 1. UI Commands
+    if (raw === "/clear") {
       clearScreen(uiContext);
       return;
     }
 
-    if (message.trim() === "/help") {
+    if (raw === "/help") {
       showHelp(uiContext);
       return;
     }
 
-    if (activeroom) {
-      const content = message.trim();
+    // 2. Auth Commands
+    if (raw === "/login") {
+      startLogin(authContext);
+      return;
+    }
 
-      // Show immediately
+    if (raw === "/register") {
+      startRegister(authContext);
+      return;
+    }
+
+    if (raw === "/logout") {
+      logout(authContext);
+      return;
+    }
+
+    // 3. Room Commands
+    if (raw === "/rooms") {
+      await listRooms(roomContext);
+      return;
+    }
+
+    if (raw.startsWith("/create")) {
+      const roomArg = raw.slice(7).trim();
+      await createRoomAction(roomArg || undefined, roomContext);
+      return;
+    }
+
+    if (raw.startsWith("/join ")) {
+      const roomId = raw.slice(6).trim();
+      await joinRoom(roomId, roomContext);
+      return;
+    }
+
+    if (raw === "/members") {
+      await getMembers(roomContext);
+      return;
+    }
+
+    if (raw === "/leave") {
+      await leaveRoom(roomContext);
+      return;
+    }
+
+    if (raw === "/back") {
+      backFromRoom(roomContext);
+      return;
+    }
+
+    // 4. File Commands
+    if (raw.startsWith("/share ")) {
+      const filepath = raw.slice(7).trim();
+      await shareFile(filepath, fileContext);
+      return;
+    }
+
+    if (raw.startsWith("/accept ")) {
+      const shareId = raw.slice(8).trim();
+      await acceptFile(shareId, fileContext);
+      return;
+    }
+
+    if (raw.startsWith("/reject ")) {
+      const shareId = raw.slice(8).trim();
+      await rejectFile(shareId, fileContext);
+      return;
+    }
+
+    // 5. Normal Chat Message
+    if (activeroom) {
+      const content = raw;
+
+      // Optimistic preview
       setmessages((prev) => [
         ...prev,
         {
           content,
-          user: {
-            name: "You",
-          },
+          user: { name: "You" },
           optimistic: true,
         },
       ]);
-
       setmessage("");
 
       try {
-        const sentmessage = await sendmessage(activeroom.id, content);
-
-        sendSocketMessage(activeroom.id, content, sentmessage.user);
-      } catch (error) {
+        const sent = await sendmessage(activeroom.id, content);
+        sendSocketMessage(activeroom.id, content, sent.user);
+      } catch (err) {
         seterror(
-          error instanceof Error ? error.message : "Failed to send message",
+          err instanceof Error ? err.message : "Failed to send message",
         );
       }
+      return;
     }
+
+    // If not in room and typed non-command text
+    seterror("You are not inside a room. Type /rooms to view rooms or /create to make one.");
     setmessage("");
   };
 
   if (mode === "login") {
     return (
-      <Box flexDirection="column">
-        <Text bold color="red">
-          Kairos - Login
-        </Text>
-
-        {error && <Text color="red">{error}</Text>}
+      <Box flexDirection="column" padding={1}>
+        <Text bold color="red">Kairos - Login</Text>
+        {error ? <Text color="red">⚠️ {error}</Text> : null}
 
         {loginstep === "email" && (
-          <>
-            <Text>Email:</Text>
-
+          <Box marginTop={1}>
+            <Text>Email: </Text>
             <TextInput
               value={email}
               onChange={setemail}
@@ -327,35 +345,31 @@ function App() {
                 setloginstep("password");
               }}
             />
-          </>
+          </Box>
         )}
 
         {loginstep === "password" && (
-          <>
-            <Text>Password:</Text>
-
+          <Box marginTop={1}>
+            <Text>Password: </Text>
             <TextInput
-              mask="#"
+              mask="*"
               value={password}
               onChange={setpassword}
               onSubmit={async () => {
                 if (!password.trim()) return;
-
                 try {
                   await login(email, password);
                   seterror("");
+                  setinfo("Logged in successfully");
                   setlogged(true);
                   setmode("chat");
+                  setView("welcome");
                 } catch (e) {
-                  if (e instanceof Error) {
-                    seterror(e.message);
-                  } else {
-                    seterror("Registration failed");
-                  }
+                  seterror(e instanceof Error ? e.message : "Login failed");
                 }
               }}
             />
-          </>
+          </Box>
         )}
       </Box>
     );
@@ -363,17 +377,13 @@ function App() {
 
   if (mode === "register") {
     return (
-      <Box flexDirection="column">
-        <Text bold color="red">
-          Kairos - Register
-        </Text>
-
-        {/* {error && <Text color="red">{error}</Text>} */}
+      <Box flexDirection="column" padding={1}>
+        <Text bold color="red">Kairos - Register</Text>
+        {error ? <Text color="red">⚠️ {error}</Text> : null}
 
         {registerstep === "name" && (
-          <>
-            <Text>Name:</Text>
-
+          <Box marginTop={1}>
+            <Text>Name: </Text>
             <TextInput
               value={name}
               onChange={setname}
@@ -382,13 +392,12 @@ function App() {
                 setregisterstep("email");
               }}
             />
-          </>
+          </Box>
         )}
 
         {registerstep === "email" && (
-          <>
-            <Text>Email:</Text>
-
+          <Box marginTop={1}>
+            <Text>Email: </Text>
             <TextInput
               value={email}
               onChange={setemail}
@@ -397,35 +406,31 @@ function App() {
                 setregisterstep("password");
               }}
             />
-          </>
+          </Box>
         )}
 
         {registerstep === "password" && (
-          <>
-            <Text>Password:</Text>
-
+          <Box marginTop={1}>
+            <Text>Password: </Text>
             <TextInput
-              mask="#"
+              mask="*"
               value={password}
               onChange={setpassword}
               onSubmit={async () => {
                 if (!password.trim()) return;
-
                 try {
                   await register(name, email, password);
                   seterror("");
+                  setinfo("Registered and logged in successfully");
                   setlogged(true);
                   setmode("chat");
+                  setView("welcome");
                 } catch (e) {
-                  if (e instanceof Error) {
-                    seterror(e.message);
-                  } else {
-                    seterror("Registration failed");
-                  }
+                  seterror(e instanceof Error ? e.message : "Registration failed");
                 }
               }}
             />
-          </>
+          </Box>
         )}
       </Box>
     );
@@ -435,73 +440,106 @@ function App() {
     <Box flexDirection="column">
       <Header logged={logged} serverconnected={serverconnected} frame={frame} />
 
-      <Box borderStyle="single" height={30} flexDirection="column" paddingX={1}>
-        {empty && (
+      <Box borderStyle="single" height={22} flexDirection="column" paddingX={1}>
+        {view === "welcome" && (
           <Box
             flexDirection="column"
             alignItems="center"
             justifyContent="center"
-            marginY={1}
+            marginY={2}
           >
-            <Text color="gray">
-              {"code together without ever leaving your IDE\n"}
-              {"version 1.0.0 | 16 sept 2026 | cynicalmindset"}
-            </Text>
+            <Text color="cyan" bold>Welcome to Kairos Terminal Chat 🚀</Text>
+            <Text color="gray">{"\nCode together without ever leaving your IDE"}</Text>
+            <Text color="gray">{"\nType /help for available commands or /rooms to join a room"}</Text>
           </Box>
         )}
 
-        {midtext && (
-          <Box justifyContent="center" alignItems="center">
-            <Text color="gray">{midtext}</Text>
+        {view === "help" && (
+          <Box flexDirection="column" marginY={1}>
+            <Help />
           </Box>
         )}
-        {showmember && <Members members={member} />}
-        {listroom && (
-          <Box
-            flexDirection="column"
-            justifyContent="center"
-            alignItems="center"
-          >
-            <Box marginY={1}>
-              <Text bold>Rooms</Text>
+
+        {view === "rooms" && (
+          <Box flexDirection="column" marginY={1}>
+            <Text bold color="yellow">Available Rooms (↑/↓ to select, Enter to join):</Text>
+            <Box marginTop={1}>
+              <RoomList rooms={rooms} selectedroom={selectedroom} />
             </Box>
-
-            <RoomList rooms={rooms} selectedroom={selectedroom} />
           </Box>
         )}
 
-        {showcommads && <Help />}
-        <MessageList messages={messages} />
+        {view === "members" && (
+          <Box flexDirection="column" marginY={1}>
+            <Members members={member} />
+          </Box>
+        )}
+
+        {view === "create_room" && (
+          <Box flexDirection="column" marginY={1}>
+            <Text bold color="green">Create a New Room</Text>
+            <Text color="gray">Type the room name below and press Enter (or Esc to cancel)</Text>
+          </Box>
+        )}
+
+        {view === "chat" && (
+          <Box flexDirection="column">
+            {midtext ? (
+              <Box marginY={1}>
+                <Text bold color="magenta">{midtext}</Text>
+              </Box>
+            ) : null}
+            <MessageList messages={messages} />
+          </Box>
+        )}
       </Box>
 
+      {/* Feedback Banner */}
+      {error ? (
+        <Box paddingX={1}>
+          <Text color="red">⚠️ {error}</Text>
+        </Box>
+      ) : info ? (
+        <Box paddingX={1}>
+          <Text color="cyan">ℹ️ {info}</Text>
+        </Box>
+      ) : null}
+
+      {/* Input Prompt */}
       <Box borderStyle="single">
-        <Text color={"red"}>{" > "}</Text>
-        {isCreatingRoom ? (
+        <Text color="red">{" > "}</Text>
+        {view === "create_room" ? (
           <TextInput
-            placeholder="enter room name..."
+            placeholder="Enter room name..."
             value={roomname}
             onChange={setroomname}
-            onSubmit={async (name) => {
-              if (!name.trim()) {
-                // get it to message box not input filed
+            onSubmit={async () => {
+              const trimmed = roomname.trim();
+              if (!trimmed) {
                 seterror("Room name cannot be empty");
                 return;
               }
 
               try {
-                const room = await createroom(name.trim());
+                const room = await createroom(trimmed);
                 setrooms((prev) => [...prev, room]);
-                setIsCreatingRoom(false);
-                setmidtext(`Created room: ${room.name}`);
-              } catch (error) {
+                setroomname("");
+
+                // Auto join new room
+                joinroomies(room.id);
+                setactiveroom(room);
+                setmessages([]);
+                setView("chat");
+                setmidtext(`# ${room.name}`);
+                seterror("");
+                setinfo(`Created and joined room #${room.name}`);
+              } catch (err) {
                 seterror(
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to create room",
+                  err instanceof Error ? err.message : "Failed to create room",
                 );
               }
             }}
-          ></TextInput>
+          />
         ) : (
           <Input
             value={message}
