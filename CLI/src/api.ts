@@ -1,6 +1,5 @@
 import { saveAuth } from "./auth.ts";
-const API = process.env.API_URL || "http://localhost:3000";
-// const API = "https://many-hedging-frustrate.ngrok-free.dev";
+const API = process.env.API_URL || "https://kairos-w84s.onrender.com";
 let authtoken: string | null = null;
 
 

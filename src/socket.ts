@@ -1,13 +1,15 @@
-const WS_URL = process.env.KAIROS_WS_URL || "ws://localhost:3000/ws";
+import WebSocket from "ws";
+
+const WS_URL = process.env.KAIROS_WS_URL || "wss://kairos-w84s.onrender.com/ws";
 console.log("WS URL:", WS_URL);
 const ws = new WebSocket(WS_URL);
 
 let onmessage: ((message: any) => void) | null = null;
 
-ws.onmessage = (event) => {
+ws.onmessage = (event: { data: string; }) => {
   try {
     const data = JSON.parse(event.data);
-    if (data.type === "new_message" || data.type === "file_share") {
+    if (data.type === "new_message" || data.type === "file_share" || data.type === "presence:online") {
       onmessage?.(data);
     }
   } catch (err) {
@@ -76,17 +78,27 @@ export function setconncetionhandler(handler: (connected: boolean) => void) {
   }
 }
 
+export function setpresence(userId:string,username:string){
+  ws.send(
+    JSON.stringify({
+      type:"presence:online",
+      userId:userId,
+      username:username
+    })
+  )
+}
+
 ws.onopen = () => {
   console.log("Connected to WebSocket");
   oncooneectionchange?.(true);
 };
 
-ws.onclose = (event) => {
+ws.onclose = (event: { code: any; reason: any; }) => {
   console.log("WebSocket CLOSED, code:", event.code, "reason:", event.reason);
   oncooneectionchange?.(false);
 };
 
-ws.onerror = (error) => {
+ws.onerror = (error: any) => {
   console.log("WebSocket error:", error);
   oncooneectionchange?.(false);
 };

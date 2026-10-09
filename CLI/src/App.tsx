@@ -24,6 +24,7 @@ import {
   sendSocketMessage,
   setMessageHandler,
   setconncetionhandler,
+  setpresence
 } from "../../src/socket.ts";
 import {
   register,
@@ -85,6 +86,17 @@ function App() {
         setinfo("");
         return;
       }
+
+      // If in chat / active room, Esc returns to Home screen
+      if (view === "chat" || activeroom) {
+        setactiveroom(null);
+        setmessages([]);
+        setmidtext("");
+        setView("welcome");
+        seterror("");
+        setinfo("Returned to Home screen");
+        return;
+      }
     }
 
     if (view === "rooms" && rooms.length > 0) {
@@ -131,22 +143,28 @@ function App() {
   }, []);
 
   useEffect(() => {
-    setMessageHandler((newMessage) => {
+    setMessageHandler((data) => {
+
+      if(data.type === "presence:update"){
+        setmember(data.users);
+        return;
+      }
+
       setmessages((prev) => {
         const optimisticIndex = prev.findIndex(
-          (msg) => msg.optimistic && msg.content === newMessage.content,
+          (msg) => msg.optimistic && msg.content === data.content,
         );
 
         if (optimisticIndex !== -1) {
           const updated = [...prev];
           updated[optimisticIndex] = {
-            ...newMessage,
+            ...data,
             optimistic: false,
           };
           return updated;
         }
 
-        return [...prev, newMessage];
+        return [...prev, data];
       });
     });
   }, []);
@@ -393,6 +411,10 @@ function App() {
                   setlogged(true);
                   setmode("chat");
                   setView("welcome");
+
+                  const data = await getprofile();
+                  setpresence(data.id,data.name)
+
                 } catch (e) {
                   seterror(e instanceof Error ? e.message : "Login failed");
                 }
@@ -454,6 +476,10 @@ function App() {
                   setlogged(true);
                   setmode("chat");
                   setView("welcome");
+
+                  const data = await getprofile();
+                  setpresence(data.id,data.name)
+
                 } catch (e) {
                   seterror(e instanceof Error ? e.message : "Registration failed");
                 }

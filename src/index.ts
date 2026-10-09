@@ -30,6 +30,13 @@ app.get("/health", (_req, res) => {
 //   console.log(`Server is running on port ${process.env.PORT}`);
 // });
 
+const onlineUsers = new Map<string, {
+  userId: string;
+  username: string;
+  ws: any;
+  status: "online" | "away";
+}>();
+
 
 const rooms = new Map<string, Set<any>>();
 
@@ -40,14 +47,29 @@ const wss = new WebSocketServer({
   path: "/ws",
 });
 
+function braodcastpresence(){
+  const user = Array.from(onlineUsers.values())
+  const message = JSON.stringify({
+    type:"presence:online",
+    user
+  });
+
+  wss.clients.forEach((client)=>{
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  })
+}
+
 wss.on("connection", (ws) => {
   console.log("WebSocket client connected");
+
 
   (ws as any).roomId = null;
 
   ws.on("message", (message) => {
-    console.log("Received:", message.toString());
 
+    console.log("Received:", message.toString());
     const data = JSON.parse(message.toString());
 
     if (data.type === "join_room") {
@@ -115,12 +137,33 @@ wss.on("connection", (ws) => {
         }
       }
     }
+
+    if(data.type === "presence:online"){
+      (ws as any).userId = data.userId;
+      (ws as any).username = data.username;
+
+      onlineUsers.set(data.userId,{
+        userId:data.userId,
+        username:data.username,
+        ws:ws,
+        status:"online"
+      })
+    }
+    braodcastpresence();
+
   });
 
   ws.on("close", () => {
     console.log("WebSocket client disconnected");
 
     const roomId = (ws as any).roomId;
+
+    const userId = (ws as any).userId
+
+    if(userId){
+      onlineUsers.delete(userId)
+      braodcastpresence();
+    } 
 
     if (!roomId) return;
 

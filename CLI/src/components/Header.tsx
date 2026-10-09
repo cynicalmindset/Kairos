@@ -10,9 +10,10 @@ type HeaderProps = {
   info?: string;
 };
 
-const logo = figlet.textSync("KAIROS", {
-  font: "Small Keyboard",
-});
+const logo = ` ____ ____ ____ ____ ____ ____ 
+||K |||A |||I |||R |||O |||S ||
+||__|||__|||__|||__|||__|||__||
+|/__\\|/__\\|/__\\|/__\\|/__\\|/__\\|`;
 
 export default function Header({
   logged,

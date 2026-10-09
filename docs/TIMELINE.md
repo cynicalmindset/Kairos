@@ -57,6 +57,9 @@ The AI came in as a helper mechanic to make everything lightning fast without ch
 | **9. Clean Top Header Status & Notifications** | `CLI/src/components/Header.tsx`, `CLI/src/App.tsx` | Moved error alerts and info tickers directly inside the Header box right below the status line for a neat, centralized dashboard view! |
 | **10. User Profile & Player Card System** | `src/routes/profile.ts`, `CLI/src/components/Profile.tsx`, `CLI/src/api.ts` | Built `/profile` command showing user badge, member since date, rooms joined, rooms owned, total messages sent, and files shared! |
 | **11. Quick Dashboard Navigation** | `CLI/src/commands/roomCommands.ts`, `CLI/src/App.tsx` | Added `/home` command to quickly step out to the main menu without leaving your room membership. |
+| **12. One-Key `Esc` Room Exit** | `CLI/src/App.tsx` | Pressing `Esc` inside any room instantly steps you out to the Home dashboard while safely keeping your room membership intact! |
+| **13. Ultra-Minimal, Reason-Driven Landing Page** | `client/` (Vite, React, TypeScript) | Created an ultra-minimal landing page (inspired by Animos spring dynamics and Ossium typography) with dark/light themes, live simulated interactive terminal playground, "The Reason Behind Everything" philosophy breakdown, feature bento grid utilizing root assets, and active GitHub version/roadmap tracker! |
+| **14. Frontend Layout Fix & Spring Motion Rebuild** | `client/src/*`, `client/public/assets/*` | Fixed section overlap bugs, replaced broken layouts with fluid Framer Motion spring physics (Animos-style), added curated 1-bit visual showcases (dithered dove, Agora MacBook, code matrix), eliminated all emojis in favor of crisp Lucide icons, and ensured pixel-perfect dark/light mode responsiveness! |
 
 ---
 

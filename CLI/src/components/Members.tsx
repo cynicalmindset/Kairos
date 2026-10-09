@@ -10,8 +10,8 @@ export default function Members({ members }: MembersProps) {
       <Text bold>Members</Text>
 
       {members.map((member) => (
-        <Text key={member.id}>
-          • {member.name}
+        <Text key={member.userId}>
+          • {member.username}
         </Text>
       ))}
     </Box>

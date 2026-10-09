@@ -18,7 +18,7 @@ export const TerminalPreview: React.FC = () => {
   const [messages, setMessages] = useState<TerminalMessage[]>([
     {
       id: '1',
-      content: 'kairos v1.0.0 daemon started on ws://localhost:3000',
+      content: 'kairos v1.0.0 daemon started on wss://kairos-w84s.onrender.com/ws',
       type: 'system',
       time: '14:30:01',
     },
