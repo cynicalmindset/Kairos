@@ -21,6 +21,10 @@ export async function apiFetch(
     headers.set("Content-Type", "application/json");
   }
 
+  if (!headers.has("Origin")) {
+    headers.set("Origin", "http://localhost:3000");
+  }
+
   if (authtoken) {
     headers.set(
       "Authorization",

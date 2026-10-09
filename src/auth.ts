@@ -8,6 +8,18 @@ export const auth = betterAuth({
     provider: "mongodb",
   }),
 
+  baseURL: process.env.BETTER_AUTH_URL || "https://kairos-w84s.onrender.com",
+
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://kairos-w84s.onrender.com",
+  ],
+
+  advanced: {
+    disableCSRFCheck: true,
+  },
+
   emailAndPassword: {
     enabled: true,
   },
