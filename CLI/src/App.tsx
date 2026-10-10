@@ -121,7 +121,7 @@ function App() {
           setView("chat");
           setmidtext(`# ${room.name}`);
           seterror("");
-          setinfo(`Entered #${room.name}`);
+          setinfo(`Entered #${room.name} | Room Code: ${room.id}`);
         } catch (err) {
           seterror(
             err instanceof Error ? err.message : "Failed to open room",
@@ -322,6 +322,16 @@ function App() {
 
     if (raw === "/back") {
       backFromRoom(roomContext);
+      return;
+    }
+
+    if (raw === "/code") {
+      if (!activeroom) {
+        seterror("You are not inside any room. Type /rooms or /create to start.");
+      } else {
+        setinfo(`Room: #${activeroom.name} | Room Code: ${activeroom.id} (Share: /join ${activeroom.id})`);
+      }
+      setmessage("");
       return;
     }
 
@@ -532,7 +542,7 @@ function App() {
 
         {view === "members" && (
           <Box flexDirection="column" marginY={1}>
-            <Members members={member} />
+            <Members members={member} roomName={activeroom?.name} roomCode={activeroom?.id} />
           </Box>
         )}
 
@@ -549,7 +559,17 @@ function App() {
 
         {view === "chat" && (
           <Box flexDirection="column">
-            {midtext ? (
+            {activeroom ? (
+              <Box marginY={1} flexDirection="row" justifyContent="space-between">
+                <Box flexDirection="row" gap={1}>
+                  <Text bold color="magenta">#{activeroom.name}</Text>
+                  <Text color="gray">|</Text>
+                  <Text color="gray">Room Code: </Text>
+                  <Text bold color="yellow">{activeroom.id}</Text>
+                </Box>
+                <Text color="gray">(Use /code or share with friends to /join)</Text>
+              </Box>
+            ) : midtext ? (
               <Box marginY={1}>
                 <Text bold color="magenta">{midtext}</Text>
               </Box>
@@ -586,7 +606,7 @@ function App() {
                 setView("chat");
                 setmidtext(`# ${room.name}`);
                 seterror("");
-                setinfo(`Created and joined room #${room.name}`);
+                setinfo(`Created #${room.name}! Room Code: ${room.id} (Share: /join ${room.id})`);
               } catch (err) {
                 seterror(
                   err instanceof Error ? err.message : "Failed to create room",

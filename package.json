@@ -1,6 +1,6 @@
 {
   "name": "kairos-command",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Terminal client and CLI for Kairos",
   "type": "module",
   "bin": {

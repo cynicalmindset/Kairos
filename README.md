@@ -86,9 +86,10 @@ Inside the CLI, all operations are performed using slash (`/`) commands:
 - `/profile` — View your account details and current status.
 
 ### Rooms and Channels
-- `/rooms` — List all available chat rooms.
+- `/rooms` — List all your chat rooms along with their room codes.
 - `/create <room-name>` — Create a new chat room (example: `/create dev-chat`).
-- `/join <room-id>` — Join a room and enter the live conversation.
+- `/join <room-code>` — Join a room using its room code (or room name).
+- `/code` — Display the current room code to share with friends.
 - `/members` — List all members currently inside your room.
 - `/leave` — Exit the current room and return to the lobby.
 - `/back` — Return to the previous screen.

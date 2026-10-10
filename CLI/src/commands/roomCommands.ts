@@ -87,30 +87,49 @@ export async function getMembers(ctx: RoomCommandContext) {
   ctx.setmessage("");
 }
 
-// Join room by ID
+// Join room by ID or Name
 export async function joinRoom(
   roomId: string,
   ctx: RoomCommandContext,
 ) {
   if (!roomId) {
-    ctx.seterror("Room ID is required. Usage: /join <roomId>");
+    ctx.seterror("Room code is required. Usage: /join <roomCode>");
     return;
   }
 
   try {
-    await joinroom(roomId);
-    const room = await getroombyid(roomId);
+    let actualRoomId = roomId;
+    try {
+      const res = await joinroom(roomId);
+      actualRoomId = res?.membership?.roomId || roomId;
+    } catch (joinErr: any) {
+      if (joinErr.message?.includes("Already a part of this room")) {
+        const myRooms = await getroom();
+        const found = myRooms?.find(
+          (r: any) =>
+            r.id === roomId ||
+            r.name.toLowerCase() === roomId.toLowerCase(),
+        );
+        if (found) {
+          actualRoomId = found.id;
+        }
+      } else {
+        throw joinErr;
+      }
+    }
 
-    joinroomies(roomId);
-    const data = await getmessage(roomId);
+    const room = await getroombyid(actualRoomId);
+
+    joinroomies(actualRoomId);
+    const data = await getmessage(actualRoomId);
 
     ctx.setactiveroom(room);
-    ctx.setmessages(data);
+    ctx.setmessages(data || []);
     ctx.setView("chat");
     ctx.setmidtext(`# ${room.name}`);
     ctx.setmessage("");
     ctx.seterror("");
-    ctx.setinfo(`Joined room #${room.name}`);
+    ctx.setinfo(`Joined #${room.name} | Room Code: ${room.id}`);
   } catch (error) {
     ctx.seterror(
       error instanceof Error ? error.message : "Failed to join room",
@@ -127,7 +146,7 @@ export async function listRooms(ctx: RoomCommandContext) {
     ctx.setselectedroom(0);
     ctx.setView("rooms");
     ctx.seterror("");
-    ctx.setinfo("Use ↑ / ↓ and Enter to select a room, or /back to exit");
+    ctx.setinfo("Use ↑ / ↓ and Enter to select, or /join <roomCode>");
     ctx.setmessage("");
   } catch (error) {
     ctx.seterror(
@@ -153,7 +172,7 @@ export async function createRoomAction(
       ctx.setView("chat");
       ctx.setmidtext(`# ${room.name}`);
       ctx.seterror("");
-      ctx.setinfo(`Created and joined room #${room.name}`);
+      ctx.setinfo(`Created #${room.name}! Room Code: ${room.id} (Share: /join ${room.id})`);
     } catch (error) {
       ctx.seterror(
         error instanceof Error ? error.message : "Failed to create room",
