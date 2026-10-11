@@ -49,7 +49,7 @@ export function Roadmap() {
   ];
 
   return (
-    <section id="roadmap" className="relative py-20 sm:py-28 px-4 sm:px-8 border-b border-zinc-800/80 overflow-hidden snap-start scroll-mt-20">
+    <section id="roadmap" className="relative py-20 sm:py-28 px-4 sm:px-8 border-b border-zinc-800/80 overflow-hidden snap-start scroll-mt-24">
       {/* Section Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

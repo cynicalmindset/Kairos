@@ -34,7 +34,7 @@ export function FeaturesBento() {
   ];
 
   return (
-    <section id="architecture" className="relative py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto w-full border-t border-zinc-800/80 snap-start scroll-mt-20">
+    <section id="architecture" className="relative py-16 md:py-24 px-4 sm:px-6 max-w-6xl mx-auto w-full border-t border-zinc-800/80 snap-start scroll-mt-24">
       {/* Section Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

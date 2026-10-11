@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, X, Package } from 'lucide-react';
 import { GithubIcon } from './GithubIcon';
 
 export const Navbar: React.FC = () => {
@@ -9,16 +9,35 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { label: 'Overview', href: '#how-it-works' },
     { label: 'Capabilities', href: '#architecture' },
-    { label: 'RAM Audit', href: '#why-kairos' },
+    { label: 'Metrics', href: '#metrics' },
     { label: 'Roadmap', href: '#roadmap' },
   ];
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    if (href === '#' || href === '#top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMobileOpen(false);
+      return;
+    }
+    const targetId = href.replace('#', '');
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setMobileOpen(false);
+  };
 
   return (
     <header className="fixed top-4 sm:top-5 left-0 right-0 z-50 px-4 sm:px-6 pointer-events-none">
       <div className="max-w-5xl mx-auto rounded-full bg-black/40 backdrop-blur-xl border border-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] px-5 sm:px-6 h-12 sm:h-13 flex items-center justify-between pointer-events-auto transition-all">
         
         {/* Logo with user's provided logo.png */}
-        <a href="#" className="flex items-center gap-2.5 no-underline text-white group shrink-0">
+        <a 
+          href="#" 
+          onClick={(e) => handleNavClick(e, '#')}
+          className="flex items-center gap-2.5 no-underline text-white group shrink-0 cursor-pointer"
+        >
           <div className="w-7 h-7 rounded-full overflow-hidden border border-white/25 shadow-sm bg-black shrink-0">
             <img
               src="/assets/logo.png"
@@ -37,7 +56,8 @@ export const Navbar: React.FC = () => {
             <a
               key={link.href}
               href={link.href}
-              className="hover:text-white transition-colors py-1 hover:drop-shadow-md"
+              onClick={(e) => handleNavClick(e, link.href)}
+              className="hover:text-white transition-colors py-1 hover:drop-shadow-md cursor-pointer"
             >
               {link.label}
             </a>
@@ -45,7 +65,17 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <a
+            href="https://www.npmjs.com/package/kairos-command"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-medium transition-all cursor-pointer shadow-sm hover:scale-102"
+            title="View package on npm"
+          >
+            <Package size={12} className="text-red-400" />
+            <span>npm v1.0.4</span>
+          </a>
 
           <a
             href="https://github.com/cynicalmindset/Kairos"
@@ -81,17 +111,27 @@ export const Navbar: React.FC = () => {
               <a
                 key={link.href}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="py-1.5 px-3 rounded-lg hover:bg-white/10 text-zinc-200 hover:text-white transition-colors"
+                onClick={(e) => handleNavClick(e, link.href)}
+                className="py-1.5 px-3 rounded-lg hover:bg-white/10 text-zinc-200 hover:text-white transition-colors cursor-pointer"
               >
                 {link.label}
               </a>
             ))}
             <a
+              href="https://www.npmjs.com/package/kairos-command"
+              target="_blank"
+              rel="noreferrer"
+              className="pt-2.5 mt-1 border-t border-white/15 flex items-center gap-2 px-3 text-red-300 font-mono text-xs"
+            >
+              <Package size={13} className="text-red-400" />
+              <span>npm: kairos-command v1.0.4</span>
+              <ArrowUpRight size={11} className="ml-auto opacity-70" />
+            </a>
+            <a
               href="https://github.com/cynicalmindset/Kairos"
               target="_blank"
               rel="noreferrer"
-              className="pt-2.5 mt-1 border-t border-zinc-800 flex items-center gap-2 px-3 text-white font-semibold"
+              className="flex items-center gap-2 px-3 text-white font-semibold"
             >
               <GithubIcon size={13} />
               <span>cynicalmindset/Kairos</span>

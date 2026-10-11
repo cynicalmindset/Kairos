@@ -87,7 +87,7 @@ export function EcosystemSection() {
   ];
 
   return (
-    <section id="how-it-works" className="w-full border-t border-[var(--border)] pt-16 sm:pt-20 pb-16 px-4 sm:px-6 snap-start scroll-mt-20">
+    <section id="how-it-works" className="w-full border-t border-[var(--border)] pt-16 sm:pt-20 pb-16 px-4 sm:px-6 snap-start scroll-mt-24">
       
       {/* Section Header */}
       <motion.div

@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Play, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Check, ArrowUpRight } from 'lucide-react';
+import { GithubIcon } from './GithubIcon';
 import { LiquidMetalButton } from './vengence/LiquidMetal';
 
 export function Hero() {
   const [copied, setCopied] = useState(false);
-  const command = 'bun run CLI/src/index.tsx';
+  const command = 'npm i -g kairos-command';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(command);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2400);
   };
 
   return (
@@ -44,40 +46,76 @@ export function Hero() {
           Real-time team chat, channels, and direct workspace file transfers built entirely into your terminal. Zero Electron bloat.
         </p>
 
-        {/* 4. Action Buttons: Explore CLI (White with Liquid Glass & Black text) + Watch demo (Normal Glass), both same size */}
-        <div className="flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 mb-6">
-          {/* Explore CLI: White with Liquid Glass Border & Black Text */}
-          <LiquidMetalButton
-            onClick={() => {
-              const el = document.getElementById('how-it-works');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            variant="white"
-            size="md"
-            borderWidth={2}
-            metalConfig={{
-              colorBack: "#94a3b8",
-              colorTint: "#ffffff",
-              speed: 0.55,
-              repetition: 3,
-              distortion: 0.15,
-            }}
-            className="select-none"
-          >
-            <span className="text-zinc-950 font-semibold text-sm inline-flex items-center gap-1.5">
-              Explore CLI <ArrowRight size={14} className="text-zinc-950" />
-            </span>
-          </LiquidMetalButton>
+        {/* 4. Action Buttons: Install (copies command) + Contribute (GitHub) */}
+        <div className="relative flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 mb-6">
+          {/* Install: White with Liquid Glass Border & Black Text */}
+          <div className="relative inline-flex flex-col items-center">
+            <LiquidMetalButton
+              onClick={handleCopy}
+              variant="white"
+              size="md"
+              borderWidth={2}
+              metalConfig={{
+                colorBack: "#94a3b8",
+                colorTint: "#ffffff",
+                speed: 0.55,
+                repetition: 3,
+                distortion: 0.15,
+              }}
+              className="select-none cursor-pointer"
+            >
+              <motion.span
+                key={copied ? 'copied' : 'install'}
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                className="text-zinc-950 font-semibold text-sm inline-flex items-center gap-1.5"
+              >
+                {copied ? (
+                  <>
+                    <Check size={14} className="text-emerald-600 stroke-[3]" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={14} className="text-zinc-950" />
+                    <span>Install</span>
+                  </>
+                )}
+              </motion.span>
+            </LiquidMetalButton>
 
-          {/* Watch demo: Normal Frosted Glass Button (Exact Same Size h-11 px-6) */}
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="h-11 px-6 rounded-full inline-flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 text-white font-semibold text-sm shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] transition-all hover:scale-102 active:scale-98 cursor-pointer select-none"
+            {/* Boxy, White Notification Below Install */}
+            <AnimatePresence>
+              {copied && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 8, scale: 1 }}
+                  exit={{ opacity: 0, y: -2, scale: 0.95 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-md bg-white text-zinc-950 border border-zinc-200/90 shadow-[0_12px_28px_rgba(0,0,0,0.22)] font-mono text-xs whitespace-nowrap"
+                >
+                  <Check size={12} className="text-emerald-600 stroke-[2.5]" />
+                  <span className="font-semibold text-zinc-900">Copied</span>
+                  <span className="text-zinc-600 text-[11px] px-1.5 py-0.5 rounded bg-zinc-100 border border-zinc-200">
+                    {command}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Contribute: Frosted Glass Button linking to GitHub */}
+          <a
+            href="https://github.com/cynicalmindset/Kairos"
+            target="_blank"
+            rel="noreferrer"
+            className="h-11 px-6 rounded-full inline-flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 text-white font-semibold text-sm shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] transition-all hover:scale-102 active:scale-98 cursor-pointer select-none no-underline"
           >
-            <Play size={12} className="fill-white ml-0.5" />
-            <span>{copied ? 'Copied command!' : 'Watch demo'}</span>
-          </button>
+            <GithubIcon size={14} />
+            <span>Contribute</span>
+            <ArrowUpRight size={13} className="opacity-70" />
+          </a>
         </div>
       </div>
 
