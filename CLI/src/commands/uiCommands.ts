@@ -1,3 +1,5 @@
+import { exec } from "child_process";
+
 export type UICommandContext = {
   setView: (view: "welcome" | "rooms" | "members" | "help" | "chat" | "create_room") => void;
   setmidtext: (value: string) => void;
@@ -7,6 +9,16 @@ export type UICommandContext = {
   setinfo: (value: string) => void;
   activeroom: any;
 };
+
+export function openBrowser(url: string) {
+  const startCommand =
+    process.platform === "darwin"
+      ? "open"
+      : process.platform === "win32"
+      ? "start"
+      : "xdg-open";
+  exec(`${startCommand} ${url}`);
+}
 
 export function clearScreen(ctx: UICommandContext) {
   ctx.seterror("");

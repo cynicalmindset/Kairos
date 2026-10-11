@@ -28,11 +28,11 @@ export default function Status({
 
   return connected ? (
     <Text color="green">
-      ✓ Server is live {logged ? "" : "(Not logged in)"}
+      ● Live
     </Text>
   ) : (
     <Text color="yellow">
       {currentFrame} Connecting to server...
     </Text>
   );
-}
+}

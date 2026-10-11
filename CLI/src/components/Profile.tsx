@@ -35,7 +35,7 @@ export default function Profile({ user, stats }: ProfileProps) {
   return (
     <Box flexDirection="column" paddingX={1} marginY={1}>
       <Text bold color="green">
-        👤 User Profile
+        User Profile
       </Text>
 
       <Box flexDirection="column" marginTop={1} paddingLeft={1}>
