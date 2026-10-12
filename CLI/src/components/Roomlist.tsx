@@ -20,7 +20,7 @@ export default function RoomList({ rooms, selectedroom }: roomlistprops) {
         const isSelected = index === selectedroom;
         return (
           <Box key={room.id} flexDirection="row" gap={1}>
-            <Text color={isSelected ? "cyan" : "white"} bold={isSelected}>
+            <Text color={isSelected ? "red" : "white"} bold={isSelected}>
               {isSelected ? "> " : "  "}
               #{room.name}
             </Text>

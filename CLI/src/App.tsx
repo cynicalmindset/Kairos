@@ -1,12 +1,13 @@
 import MessageList from "../src/components/Messagelist.tsx";
-import { Box, Text, useInput, useAnimation } from "ink";
+import { Box, Text, useInput, useAnimation ,useStdout} from "ink";
 import Header from "./components/Header.tsx";
 import RoomList from "./components/Roomlist.tsx";
+import Sidebar from "./components/ascii.tsx";
 import Members from "./components/Members.tsx";
 import Help from "./components/Help.tsx";
 import Profile from "./components/Profile.tsx";
 import Input from "./components/Input.tsx";
-import { clearScreen, showHelp, type UICommandContext } from "./commands/uiCommands.ts";
+import { clearScreen, openBrowser, showHelp, type UICommandContext } from "./commands/uiCommands.ts";
 import { startLogin, startRegister, logout, type AuthCommandContext } from "./commands/authCommands.ts";
 import { shareFile, acceptFile, rejectFile, type FileCommandContext } from "./commands/fileCommands.ts";
 import {
@@ -39,11 +40,32 @@ import TextInput from "ink-text-input";
 import { useEffect, useState } from "react";
 import { getSavedToken } from "./auth.ts";
 import { settoken } from "./api.ts";
+import { input } from "better-auth";
+import HomeAscii from "./components/HomeAscii.tsx";
 
 type Mode = "chat" | "register" | "login";
 type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room" | "profile";
 
 function App() {
+
+  //dimensions
+  const {stdout} = useStdout();
+  const [dimensions,setdimensions] = useState({
+    Columns: stdout?.columns || 80,
+    Rows: stdout?.rows||24,
+  })
+
+  //dimensions const
+  const iscompact = dimensions.Rows<26;
+  const headerHeight = iscompact?3:5;
+
+  const inputHeight = 3;
+  const contentBoarders = 2;
+
+  // const alertHeight = 1;
+
+  const [scrolloffset, setscrolloffset] = useState(0);[]
+
   const [mode, setmode] = useState<Mode>("chat");
   const [view, setView] = useState<ViewMode>("welcome");
 
@@ -64,6 +86,12 @@ function App() {
   const [error, seterror] = useState("");
   const [info, setinfo] = useState("");
 
+  const alertHeight = (error || info) ? 1 : 0;
+  const overhead =  headerHeight + inputHeight +contentBoarders + alertHeight
+  const contentHeight = Math.max(5, dimensions.Rows - overhead);
+
+  // const isWide = dimensions.Columns >= 105;
+
   // Auth inputs
   const [name, setname] = useState("");
   const [email, setemail] = useState("");
@@ -72,8 +100,13 @@ function App() {
   const [loginstep, setloginstep] = useState<"email" | "password">("email");
 
   // Keyboard navigation for room selector and overlay escape
-  useInput(async (_input, key) => {
+  useInput(async (input, key) => {
     if (key.escape) {
+      if (view === "chat" && scrolloffset > 0) {
+        setscrolloffset(0);
+        return;
+      }
+
       if (view === "rooms" || view === "members" || view === "help" || view === "create_room" || view === "profile") {
         if (activeroom) {
           setView("chat");
@@ -87,18 +120,34 @@ function App() {
         return;
       }
 
-      // If in chat / active room, Esc returns to Home screen
       if (view === "chat" || activeroom) {
         setactiveroom(null);
         setmessages([]);
         setmidtext("");
         setView("welcome");
+        setscrolloffset(0);
         seterror("");
         setinfo("Returned to Home screen");
         return;
       }
     }
 
+    // 2. CHAT SCROLLING
+    if (view === "chat") {
+      // Scroll UP: PageUp OR Ctrl+U
+      if (key.upArrow|| (key.ctrl && input === "u")) {
+        setscrolloffset((prev) => Math.min(prev + 5, Math.max(0, messages.length - 1)));
+        return;
+      }
+
+      // Scroll DOWN: PageDown OR Ctrl+D
+      if (key.downArrow || (key.ctrl && input === "d")) {
+        setscrolloffset((prev) => Math.max(0, prev - 5));
+        return;
+      }
+    }
+
+    // 3. ROOM SELECTOR NAVIGATION (Arrow Keys)
     if (view === "rooms" && rooms.length > 0) {
       if (key.upArrow) {
         setselectedroom((prev) => (prev > 0 ? prev - 1 : rooms.length - 1));
@@ -118,6 +167,7 @@ function App() {
 
           setactiveroom(room);
           setmessages(data || []);
+          setscrolloffset(0);
           setView("chat");
           setmidtext(`# ${room.name}`);
           seterror("");
@@ -136,6 +186,28 @@ function App() {
     isActive: !serverconnected,
   });
 
+  useEffect(()=>{
+    let timer:any;
+    function handleresize(){
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        console.clear();
+        setdimensions({
+        Columns: stdout?.columns || 80,
+        Rows: stdout?.rows || 24,
+      })
+      }, 100);
+    }
+    // stdout?.on("resize", handleresize);
+    process.stdout?.on("resize", handleresize);
+
+    return ()=>{
+      clearTimeout(timer);
+      process.stdout?.off("resize", handleresize);
+    }
+
+  },[])
+
   useEffect(() => {
     setconncetionhandler((connected) => {
       setserverconnected(connected);
@@ -144,7 +216,7 @@ function App() {
 
   useEffect(() => {
     setMessageHandler((data) => {
-
+      setscrolloffset((prev) => (prev > 0 ? prev + 1 : 0));
       if(data.type === "presence:update"){
         setmember(data.users);
         return;
@@ -175,6 +247,11 @@ function App() {
       settoken(token);
       setlogged(true);
     }
+    getprofile()
+      .then((data)=>{
+        setProfileData(data);
+      })
+      .catch(()=>{})
   }, []);
 
   useEffect(() => {
@@ -246,6 +323,14 @@ function App() {
       return;
     }
 
+    if (raw === "/website" || raw === "/web") {
+      const url = "https://kairoscmd.vercel.app/"; // Change to your custom domain or landing page URL
+      openBrowser(url);
+      setinfo(`Opening ${url} in your browser...`);
+      setmessage("");
+      return;
+    }
+
     if (raw === "/help") {
       showHelp(uiContext);
       return;
@@ -272,6 +357,7 @@ function App() {
         seterror(err instanceof Error ? err.message : "Failed to load profile");
       }
       setmessage("");
+      setscrolloffset(0);
       return;
     }
 
@@ -307,6 +393,7 @@ function App() {
     if (raw.startsWith("/join ")) {
       const roomId = raw.slice(6).trim();
       await joinRoom(roomId, roomContext);
+      setscrolloffset(0);
       return;
     }
 
@@ -489,6 +576,7 @@ function App() {
 
                   const data = await getprofile();
                   setpresence(data.id,data.name)
+                  setname(data.name)
 
                 } catch (e) {
                   seterror(e instanceof Error ? e.message : "Registration failed");
@@ -509,19 +597,20 @@ function App() {
         frame={frame}
         error={error}
         info={info}
+        user={profileData?.user}
+        activeRoom={activeroom}
+        terminalrows={dimensions.Rows}
       />
 
-      <Box borderStyle="single" height={22} flexDirection="column" paddingX={1}>
+      <Box borderStyle="single" height={contentHeight} flexDirection="column" paddingX={1}>
         {view === "welcome" && (
-          <Box
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            marginY={2}
-          >
-            {/* <Text color="cyan" bold>Welcome to Kairos Terminal Chat</Text> */}
-            <Text color="gray">{"\nCode together without ever leaving your IDE"}</Text>
-            <Text color="gray">{"\nType /help for available commands or /rooms to join a room"}</Text>
+            <Box
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              height={contentHeight - 2}
+            >
+            <HomeAscii isActive={view === "welcome"} terminalWidth={dimensions.Columns} />
           </Box>
         )}
 
@@ -533,7 +622,7 @@ function App() {
 
         {view === "rooms" && (
           <Box flexDirection="column" marginY={1}>
-            <Text bold color="yellow">Available Rooms (↑/↓ to select, Enter to join):</Text>
+            <Text bold color="yellow">  Available Rooms (↑/↓ then Enter to join):</Text>
             <Box marginTop={1}>
               <RoomList rooms={rooms} selectedroom={selectedroom} />
             </Box>
@@ -561,20 +650,20 @@ function App() {
           <Box flexDirection="column">
             {activeroom ? (
               <Box marginY={1} flexDirection="row" justifyContent="space-between">
-                <Box flexDirection="row" gap={1}>
+                {/* <Box flexDirection="row" gap={1}>
                   <Text bold color="magenta">#{activeroom.name}</Text>
                   <Text color="gray">|</Text>
                   <Text color="gray">Room Code: </Text>
                   <Text bold color="yellow">{activeroom.id}</Text>
-                </Box>
-                <Text color="gray">(Use /code or share with friends to /join)</Text>
+                </Box> */}
+                {/* <Text color="gray">(Use /code or share with friends to /join)</Text> */}
               </Box>
             ) : midtext ? (
-              <Box marginY={1}>
+              <Box>
                 <Text bold color="magenta">{midtext}</Text>
               </Box>
             ) : null}
-            <MessageList messages={messages} />
+            <MessageList messages={messages} viewportHeight={contentHeight-2} scrollOffset={scrolloffset} roomName={activeroom?.name} roomCode={activeroom?.id}/>
           </Box>
         )}
       </Box>

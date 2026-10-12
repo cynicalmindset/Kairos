@@ -18,10 +18,11 @@
     "dev": "nodemon --exec bun src/index.ts",
     "build": "bun build ./CLI/src/index.tsx --target=node --outfile=dist/index.js",
     "prepublishOnly": "bun run build",
-    "kairos": "bun run CLI/src/index.tsx",
+    "kairos": "bun --watch CLI/src/index.tsx",
     "client": "bun --cwd client run dev"
   },
   "dependencies": {
+    "terminal-image": "^5.0.1",
     "ws": "^8.21.3"
   },
   "devDependencies": {

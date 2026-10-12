@@ -17,6 +17,7 @@ export default function Help() {
       <Text>/home               Return to home screen</Text>
       <Text>/help               Show this help</Text>
       <Text>/logout             Logout</Text>
+      <Text>/website            Open web platform in browser</Text>
     </Box>
   );
 }
