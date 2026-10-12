@@ -19,7 +19,8 @@
     "build": "bun build ./CLI/src/index.tsx --target=node --outfile=dist/index.js",
     "prepublishOnly": "bun run build",
     "kairos": "bun --watch CLI/src/index.tsx",
-    "client": "bun --cwd client run dev"
+    "client": "bun --cwd client run dev",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "terminal-image": "^5.0.1",
