@@ -2,7 +2,8 @@ import MessageList from "../src/components/Messagelist.tsx";
 import { Box, Text, useInput, useAnimation ,useStdout} from "ink";
 import Header from "./components/Header.tsx";
 import RoomList from "./components/Roomlist.tsx";
-import Sidebar from "./components/ascii.tsx";
+// import Sidebar from "./components/ascii.tsx";
+import {Load} from "./monitor/load.tsx"
 import Members from "./components/Members.tsx";
 import Help from "./components/Help.tsx";
 import Profile from "./components/Profile.tsx";
@@ -44,7 +45,7 @@ import { input } from "better-auth";
 import HomeAscii from "./components/HomeAscii.tsx";
 
 type Mode = "chat" | "register" | "login";
-type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room" | "profile";
+type ViewMode = "welcome" | "rooms" | "members" | "help" | "chat" | "create_room" | "profile" | "cpu";
 
 function App() {
 
@@ -107,7 +108,7 @@ function App() {
         return;
       }
 
-      if (view === "rooms" || view === "members" || view === "help" || view === "create_room" || view === "profile") {
+      if (view === "rooms" || view === "members" || view === "help" || view === "create_room" || view === "profile" || view === "cpu") {
         if (activeroom) {
           setView("chat");
           setmidtext(`# ${activeroom.name}`);
@@ -333,6 +334,13 @@ function App() {
 
     if (raw === "/help") {
       showHelp(uiContext);
+      return;
+    }
+
+    if (raw === "/cpu" || raw === "/sys" || raw === "/top") {
+      setView("cpu");
+      setmidtext("System Monitor");
+      setmessage("");
       return;
     }
 
@@ -644,6 +652,10 @@ function App() {
             <Text bold color="green">Create a New Room</Text>
             <Text color="gray">Type the room name below and press Enter (or Esc to cancel)</Text>
           </Box>
+        )}
+
+        {view === "cpu" && (
+          <Load terminalWidth={dimensions.Columns} />
         )}
 
         {view === "chat" && (

@@ -18,6 +18,7 @@ export default function Help() {
       <Text>/help               Show this help</Text>
       <Text>/logout             Logout</Text>
       <Text>/website            Open web platform in browser</Text>
+      <Text>/cpu                Monitor your system</Text>
     </Box>
   );
 }
