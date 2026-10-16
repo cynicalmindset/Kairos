@@ -10,6 +10,14 @@ type cpudata = {
     speed: string;
 }
 
+type processinfo = {
+  pid: number,
+  name: string,
+  cpu: number,
+  mem: number,
+  memoryMB: number
+}
+
 type memdata = {
     used: string;
     total: string;
@@ -34,7 +42,14 @@ export function Load({ terminalWidth = 80 }: { terminalWidth?: number }) {
     const [cpu, setcpu] = useState<cpudata | null>(null);
     const [mem, setmem] = useState<memdata | null>(null);
     const [net, setnet] = useState<netdata | null>(null);
+    const [processes, setProcesses] = useState<processinfo[]>([]);
+    const [temperature, setTemperature] = useState<number | null>(null);;
     const [uptime, setuptime] = useState<string>("");
+    const previousNet = React.useRef<{
+      time: number;
+      rx: number;
+      tx: number;
+    } | null>(null);
     // const [error, setError] = useState<string>("");
     // const [lastupdate, setlastupdate] = useState<string>("rendering...")
 
@@ -85,16 +100,65 @@ export function Load({ terminalWidth = 80 }: { terminalWidth?: number }) {
         let mounted = true;
         const fetch = async () => {
             try {
-                const [loadData, cpuInfo, memData, netData, timeData,temp] = await Promise.all([
+                const [loadData, cpuInfo, memData, netData, timeData,temp,processdata] = await Promise.all([
                     si.currentLoad(),
                     si.cpu(),
                     si.mem(),
                     si.networkStats(),
                     si.time(),
-                    si.cpuTemperature()
+                    si.cpuTemperature(),
+                    si.processes(),                    
                 ]);
 
-            if(!mounted) return;
+            if(!mounted) return;  
+
+            //netowork montoring
+            const current = netData[0] ?? { rx_bytes: 0, tx_bytes: 0 };
+            const now = Date.now();
+            const previous = previousNet.current;
+
+            if (previous) {
+              const seconds = (now - previous.time) / 1000;
+
+              const rxSpeed = Math.max(0, current.rx_bytes - previous.rx) / (seconds || 1);
+              const txSpeed = Math.max(0, current.tx_bytes - previous.tx) / (seconds || 1);
+
+              setnet({
+                rx: formatSpeed(rxSpeed),
+                tx: formatSpeed(txSpeed),
+              });
+            }
+
+
+            previousNet.current = {
+              rx: current.rx_bytes,
+              tx: current.tx_bytes,
+              time: now,
+            };
+
+            //temperature 
+            if (temp.main !== null && temp.main !== undefined) {
+              setTemperature(temp.main);
+            } else {
+              setTemperature(null);
+            }
+
+
+            //process monitoring
+            const topP = processdata.list
+                .map((p)=>({
+                  pid:p.pid,
+                  name:p.name,
+                  cpu:p.cpu,
+                  mem:p.mem,
+                  memoryMB:p.memRss / (1024 * 1024)
+                }))
+                .sort((a,b)=>b.memoryMB - a.memoryMB)
+                .slice(0,8);
+
+            setProcesses(topP)
+
+          
 
             //CPU monitoring nigga
             setcpu({
@@ -114,12 +178,14 @@ export function Load({ terminalWidth = 80 }: { terminalWidth?: number }) {
                 percent: (memData.used / memData.total) * 100,
             })
 
-            //network monitoring nigga
+            //uptime monitoring
             const upSec = timeData.uptime;
             const days = Math.floor(upSec / 86400);
             const hours = Math.floor((upSec % 86400) / 3600);
             const mins = Math.floor((upSec % 3600) / 60);
             setuptime(`${days > 0 ? `${days}d ` : ""}${hours}h ${mins}m`);
+
+            
 
 
             } catch (error) {
@@ -148,7 +214,16 @@ export function Load({ terminalWidth = 80 }: { terminalWidth?: number }) {
             CPU • {cpu?.model || "Detecting..."}
           </Text>
           <Text color="gray">{cpu?.speed}</Text>
-        </Box>
+          <Text color={
+            temperature === null ? "gray" :
+            temperature >= 85 ? "red" :
+            temperature >= 70 ? "yellow" : "green"
+          }>
+            {temperature !== null
+              ? `🌡 ${temperature.toFixed(1)}°C`
+              : "Temp: N/A"}
+          </Text>
+                  </Box>
         <Box marginTop={1} flexDirection="row" gap={2}>
           <Text color="white" bold>Total Usage:</Text>
           {cpu && renderBar(cpu.load, 24)}
@@ -195,6 +270,43 @@ export function Load({ terminalWidth = 80 }: { terminalWidth?: number }) {
           </Text>
         </Box>
       </Box>
+
+      {/* Process by usage */}
+<Box
+  borderStyle="round"
+  borderColor="gray"
+  flexDirection="column"
+  paddingX={1}
+  marginTop={1}
+>
+  <Text bold color="white">
+    TOP PROCESSES • MEMORY USAGE
+  </Text>
+
+  <Box justifyContent="space-between">
+    <Text color="gray">PID   PROCESS</Text>
+    <Text color="gray">CPU %   RAM MB</Text>
+  </Box>
+
+  {processes.map((p) => (
+    <Box key={p.pid} justifyContent="space-between">
+      <Text>
+        <Text color="cyan">{String(p.pid).padEnd(6)}</Text>
+        {p.name.slice(0, 22)}
+      </Text>
+
+      <Text>
+        <Text color={p.cpu > 50 ? "red" : "white"}>
+          {p.cpu.toFixed(1).padStart(5)}%
+        </Text>
+        {"   "}
+        <Text color={p.memoryMB > 500 ? "red" : "yellow"}>
+          {p.memoryMB.toFixed(0).padStart(6)}
+        </Text>
+      </Text>
+    </Box>
+  ))}
+</Box>
 
 
       {/* Footer Info */}
